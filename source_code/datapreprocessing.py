@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+
 
 from mysqlUtilities import checkIfRecordExists, insertRecord
 import requests
@@ -14,7 +14,6 @@ source_longitude_min = -73.8772
 
 # API
 url = 'http://router.project-osrm.org/route/v1/driving/'
-
 
 def processInformation(row):
     #
@@ -62,11 +61,11 @@ def processInformation(row):
 
 
 for i in range(1):
-    #file_name = 'G:/Advanced dbms/data/yellow_tripdata_2016-01' + '.csv'
+    # file_name = 'G:/Advanced dbms/data/yellow_tripdata_2016-01' + '.csv'
     file_name = 'data/yellow_tripdata_2016-12' + str(1) + '.csv'
     df = pd.read_csv(file_name)
 
-    #from the airport
+    # from the airport
 
     fromT = df.loc[
         (df['pickup_longitude'].between(source_longitude_min, source_longitude_max)) & (
@@ -84,3 +83,31 @@ for i in range(1):
 
     for index, row in to.iterrows():
         processInformation(row)
+
+#Function to calculate the distance for a given set of latitude and longitude values for source
+#and destination and returns the distance, rounded to 5 decimal places. Throws exception otherwise.
+def calculateDistance(source_latitude: str, source_longitude: str, destination_latitude: str,
+                      destination_longitude: str) -> float:
+    try:
+        # Check if the parameters are empty
+        if source_latitude == "" or source_longitude == "" or destination_latitude == "" or destination_longitude == "":
+            raise Exception("At least 1 argument is empty")
+
+        params = str(source_longitude) + "," + str(source_latitude) + ";" + str(destination_longitude) + "," + str(
+            destination_latitude) + '?overview=false'
+        r = requests.get(url=url + params)
+        # extracting data in json format
+        data = r.json()
+        distance_in_metres = data['routes'][0]['distance']
+        # 1 metre = 0.006 miles. Convert the api distance from meters to miles
+        distance_in_miles = distance_in_metres * 0.0006
+        return round(distance_in_miles,5)
+    except Exception as e:
+        print("Exception occurred : " + str(e))
+        raise e
+
+try:
+    result= calculateDistance("40.77394","-73.87476","40.75431","-73.88225")
+    print(result)
+except Exception as err:
+    print(err.args)
