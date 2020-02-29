@@ -1,8 +1,6 @@
 import pandas as pd
-
 import random
-
-
+from project.Project.source_code.datapreprocessing import calculateDistance
 
 def distance():
     random_distance = [10,2,5,4,2,6,7,2,7,9,2,3,6,7,2,6,9,3,6,9,3,4,6,7,4,3,6,6,5,4,6,7,3,6]
@@ -37,10 +35,9 @@ def pick_a_ride():
 
 def sharing_condition(rideA,rideB):
     #check for the 2 conditions
-    calculateDistance(rideA.pickup_longitude,rideA.pickup_latitude,rideB.dropoff_longitude,rideB.dropoff_latitude)
-    HA=10
-    HB=12
-    AB=2
+    AB=calculateDistance(rideA.dropoff_longitude,rideA.dropoff_latitude,rideB.dropoff_longitude,rideB.dropoff_latitude)
+    HA=calculateDistance(rideA.pickup_longitude,rideA.pickup_latitude,rideA.dropoff_longitude,rideA.dropoff_latitude)
+    HB=calculateDistance(rideA.pickup_longitude,rideA.pickup_latitude,rideB.dropoff_longitude,rideB.dropoff_latitude)
     arr=[]
     if HA+AB<HA+HB:
         arr.append(HA+AB)
