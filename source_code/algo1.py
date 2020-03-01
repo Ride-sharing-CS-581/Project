@@ -1,11 +1,15 @@
 import pandas as pd
 import random
+import time
+from itertools import combinations
 from project.Project.source_code.datapreprocessing import calculateDistance
 
 def distance():
     random_distance = [10,2,5,4,2,6,7,2,7,9,2,3,6,7,2,6,9,3,6,9,3,4,6,7,4,3,6,6,5,4,6,7,3,6]
     return random_distance[random.randint(0,len(random_distance))]
 
+
+"""
 def pick_a_ride():
     #select according to order
     pool_shares = select_Rides_pool()
@@ -23,6 +27,7 @@ def pick_a_ride():
     Ffinal=max(Dict.values())
     #print(Dict)
     #print("result",Ffinal)
+
     for rides,values in Dict.items():
         #print("inside for")
         if values==Ffinal:
@@ -32,19 +37,57 @@ def pick_a_ride():
     #remove the respective pair of rides
 
     print("final length",len(pool_shares))
+    """
+
+def pick_a_ride():
+    #select according to order
+    pool_shares = select_Rides_pool()
+    leng1=len(pool_shares)
+    rideB=[]
+    Dict={}
+    for x in range(leng1):
+        rideB.append(pool_shares['RideID'].iloc[x])
+    #print(rideB)
+    comb = combinations(rideB, 2)
+    final_array=[]
+    # Print the obtained combinations
+    for i in list(comb):
+        a=i[0]
+        b=i[1]
+        rideA=pool_shares.loc[pool_shares['RideID']==a]
+        rideB=pool_shares.loc[pool_shares['RideID']==b]
+        final=sharing_condition(rideA,rideB)
+        #store the values with ride id a and b along with final=the max distance saved
+        final_array.append(tuple([a,b,final]))
+    #find the max in the final_array
+    #remove any combination with that ride_id from the list
+    #repeat to find the max from other left data in list
+    max_dist_saved=max(final_array)[2]
+    print("max distance saved",max_dist_saved)
+    print(final_array)
 
 def sharing_condition(rideA,rideB):
     #check for the 2 conditions
-    AB=calculateDistance(rideA.dropoff_longitude,rideA.dropoff_latitude,rideB.dropoff_longitude,rideB.dropoff_latitude)
-    HA=calculateDistance(rideA.pickup_longitude,rideA.pickup_latitude,rideA.dropoff_longitude,rideA.dropoff_latitude)
-    HB=calculateDistance(rideA.pickup_longitude,rideA.pickup_latitude,rideB.dropoff_longitude,rideB.dropoff_latitude)
+
+    A_dlat=(rideA['dropoff_latitude'].to_string(index=False)).strip()
+    A_dlon=(rideA['dropoff_longitude'].to_string(index=False)).strip()
+    A_plat = (rideA['pickup_latitude'].to_string(index=False)).strip()
+    A_plon = (rideA['pickup_longitude'].to_string(index=False)).strip()
+    B_dlat=(rideB['dropoff_latitude'].to_string(index=False)).strip()
+    B_dlon=(rideB['dropoff_longitude'].to_string(index=False)).strip()
+    B_plat = (rideB['pickup_latitude'].to_string(index=False)).strip()
+    B_plon = (rideB['pickup_longitude'].to_string(index=False)).strip()
+    AB=calculateDistance(A_dlat,A_dlon,B_dlat,B_dlon)
+    HA=calculateDistance(A_plat,A_plon,A_dlat,A_dlon)
+    HB=calculateDistance(B_plat,B_plon,B_dlat,B_dlon)
+    print(AB,HA,HB)
     arr=[]
     if HA+AB<HA+HB:
-        arr.append(HA+AB)
+        arr.append(HB-AB)
     elif HB+AB<HA+HB:
-        arr.append(HA+AB)
-    final=min(arr)
-    #print("final",final)
+        arr.append(HA-AB)
+    final=max(arr)
+    print("final",final)
     return final
     #source to d1 and d2 - find the optimal route
     #enter the value from d1 to d2 in matrix format i.e the dist saved
@@ -56,7 +99,8 @@ def select_Rides_pool():
     is in the list
     Input : pool start time
     Output : Rides that are in the pool"""
-    data = pd.read_csv('temp.csv')
+    data = pd.read_csv('temp.csv', index_col=False)
+    print(data.head())
     #Lenght of the pool window
     pool_time = 5
     #dataframe will have first ride which has not yet been rideshared.
@@ -74,6 +118,8 @@ def select_Rides_pool():
 
    # sorting_starttime()
 #select_Rides_pool()
-
+print("Starting")
+start_time = time.time()
 pick_a_ride()
+print("--- %s seconds ---" % (time.time() - start_time))
     #find_best_pair()

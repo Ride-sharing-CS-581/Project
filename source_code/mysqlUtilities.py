@@ -1,7 +1,7 @@
 from mysql.connector import connect
 import sys
 
-connection = connect(host='localhost', database='locations', user='root', password='root',
+connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='locations', user='root', password='rootroot',
                      auth_plugin='mysql_native_password')
 print('Attempting to connect to the database...')
 if connection.is_connected():
@@ -29,7 +29,7 @@ def checkIfRecordExists(query):
 # Function to insert a record in to the database table
 def insertRecord(query):
     try:
-        connection = connect(host='localhost', database='locations', user='root', password='root',
+        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='locations', user='root', password='rootroot',
                              auth_plugin='mysql_native_password')
         cursor = connection.cursor(prepared=True)
         cursor.execute(query)

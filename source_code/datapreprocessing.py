@@ -1,7 +1,6 @@
 import pandas as pd
 
-
-from mysqlUtilities import checkIfRecordExists, insertRecord
+from project.Project.source_code.mysqlUtilities import checkIfRecordExists, insertRecord
 import requests
 
 from_count = 0
@@ -59,7 +58,7 @@ def processInformation(row):
 
         insertRecord(insert_record + record_tuple)
 
-
+"""
 for i in range(1):
     # file_name = 'G:/Advanced dbms/data/yellow_tripdata_2016-01' + '.csv'
     file_name = 'data/yellow_tripdata_2016-12' + str(1) + '.csv'
@@ -83,7 +82,7 @@ for i in range(1):
 
     for index, row in to.iterrows():
         processInformation(row)
-
+"""
 #Function to calculate the distance for a given set of latitude and longitude values for source
 #and destination and returns the distance, rounded to 5 decimal places. Throws exception otherwise.
 def calculateDistance(source_latitude: str, source_longitude: str, destination_latitude: str,
@@ -93,7 +92,7 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
         if source_latitude == "" or source_longitude == "" or destination_latitude == "" or destination_longitude == "":
             raise Exception("At least 1 argument is empty")
 
-        params = str(source_longitude) + "," + str(source_latitude) + ";" + str(destination_longitude) + "," + str(
+        params = (source_longitude) + "," + (source_latitude) + ";" + (destination_longitude) + "," + (
             destination_latitude) + '?overview=false'
         r = requests.get(url=url + params)
         # extracting data in json format
