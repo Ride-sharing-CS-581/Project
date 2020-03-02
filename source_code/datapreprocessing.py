@@ -1,6 +1,6 @@
 import pandas as pd
 
-from project.Project.source_code.mysqlUtilities import checkIfRecordExists, insertRecord
+from mysqlUtilities import checkIfRecordExists, insertRecord
 import requests
 
 from_count = 0

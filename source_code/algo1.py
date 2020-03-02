@@ -2,7 +2,7 @@ import pandas as pd
 import random
 import time
 from itertools import combinations
-from project.Project.source_code.datapreprocessing import calculateDistance
+from datapreprocessing import calculateDistance
 
 def distance():
     random_distance = [10,2,5,4,2,6,7,2,7,9,2,3,6,7,2,6,9,3,6,9,3,4,6,7,4,3,6,6,5,4,6,7,3,6]
@@ -58,13 +58,17 @@ def pick_a_ride():
         rideB=pool_shares.loc[pool_shares['RideID']==b]
         final=sharing_condition(rideA,rideB)
         #store the values with ride id a and b along with final=the max distance saved
-        final_array.append(tuple([a,b,final]))
+        final_array.append(tuple([final,a,b]))
+    final_array.sort(reverse = True)
+    max_dist_saved= final_array[0]
     #find the max in the final_array
+    print("max distance saved",final_array[0])
     #remove any combination with that ride_id from the list
-    #repeat to find the max from other left data in list
-    max_dist_saved=max(final_array)[2]
-    print("max distance saved",max_dist_saved)
+    for i in range(len(final_array)):
+        if final_array[i][1] == max_dist_saved[1] or final_array[i][2] == max_dist_saved[1] or final_array[i][1] == max_dist_saved[2] or final_array[i][2] == max_dist_saved[2]:
+            del final_array[i]
     print(final_array)
+    #repeat to find the max from other left data in list
 
 def sharing_condition(rideA,rideB):
     #check for the 2 conditions
@@ -80,14 +84,14 @@ def sharing_condition(rideA,rideB):
     AB=calculateDistance(A_dlat,A_dlon,B_dlat,B_dlon)
     HA=calculateDistance(A_plat,A_plon,A_dlat,A_dlon)
     HB=calculateDistance(B_plat,B_plon,B_dlat,B_dlon)
-    print(AB,HA,HB)
+    #print(AB,HA,HB)
     arr=[]
     if HA+AB<HA+HB:
         arr.append(HB-AB)
     elif HB+AB<HA+HB:
         arr.append(HA-AB)
     final=max(arr)
-    print("final",final)
+    #print("final",final)
     return final
     #source to d1 and d2 - find the optimal route
     #enter the value from d1 to d2 in matrix format i.e the dist saved
