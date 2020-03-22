@@ -2,7 +2,7 @@ import pandas as pd
 import random
 import time
 from itertools import combinations
-from datapreprocessing import calculateDistance
+from ride_sharing.source_code.datapreprocessing import calculateDistance
 
 def distance():
     random_distance = [10,2,5,4,2,6,7,2,7,9,2,3,6,7,2,6,9,3,6,9,3,4,6,7,4,3,6,6,5,4,6,7,3,6]
@@ -50,6 +50,7 @@ def pick_a_ride():
     #print(rideB)
     comb = combinations(rideB, 2)
     final_array=[]
+    final_df = pd.DataFrame(columns=['D1', 'D2', 'D_save'])
     # Print the obtained combinations
     for i in list(comb):
         a=i[0]
@@ -58,17 +59,28 @@ def pick_a_ride():
         rideB=pool_shares.loc[pool_shares['RideID']==b]
         final=sharing_condition(rideA,rideB)
         #store the values with ride id a and b along with final=the max distance saved
-        final_array.append(tuple([final,a,b]))
-    final_array.sort(reverse = True)
-    max_dist_saved= final_array[0]
-    #find the max in the final_array
-    print("max distance saved",final_array[0])
-    #remove any combination with that ride_id from the list
-    for i in range(len(final_array)):
-        if final_array[i][1] == max_dist_saved[1] or final_array[i][2] == max_dist_saved[1] or final_array[i][1] == max_dist_saved[2] or final_array[i][2] == max_dist_saved[2]:
-            del final_array[i]
+        print("start",len(final_df))
+
+        final_df=final_df.append({'D1':a,'D2':b,'D_save':final},ignore_index=True)
+        final_df=final_df.sort_values(by='D_save',ascending=False)
+
+        #print("best match",final_df.iloc[0])
+
+    dest1 = final_df['D1'].iloc[0]
+    dest2 = final_df['D2'].iloc[0]
+    dsave = final_df['D_save'].iloc[0]
+    print(dest1,dest2,dsave)
+    final_df.drop(final_df[final_df['D_save']==dsave].index,inplace=True)
+    final_df.drop(final_df[final_df['D1']==dest1].index,inplace=True)
+    final_df.drop(final_df[final_df['D2']==dest2].index,inplace=True)
+    final_df.drop(final_df[final_df['D1'] == dest2].index, inplace=True)
+    final_df.drop(final_df[final_df['D2'] == dest1].index, inplace=True)
+        #pool_shares.drop(pool_shares[pool_shares['RideID'] == rideA].index, inplace=True)
+
+    print(final_df)
+       # print(final_df)
+
     print(final_array)
-    #repeat to find the max from other left data in list
 
 def sharing_condition(rideA,rideB):
     #check for the 2 conditions
