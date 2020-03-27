@@ -29,7 +29,7 @@ def checkIfRecordExists(query):
 # Function to insert a record in to the database table
 def insertRecord(query):
     try:
-        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='locations', user='root', password='rootroot',
+        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing', user='root', password='rootroot',
                              auth_plugin='mysql_native_password')
         cursor = connection.cursor(prepared=True)
         cursor.execute(query)
