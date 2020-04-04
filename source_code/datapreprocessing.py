@@ -10,9 +10,14 @@ source_latitude_min = 40.7713
 source_latitude_max = 40.7748
 source_longitude_max = -73.8681
 source_longitude_min = -73.8772
+# API KEY
+API_KEY = "Asui_QOxZdbG4g0U9i_XayOUyZAJrCyI6PXqD_RCdi-wKDRnT-y73DOZgBmymjJY"
 
-# API
-url = 'http://router.project-osrm.org/route/v1/driving/'
+# BING MAPS API
+url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
+      '$$$$' \
+      + '&key=' + API_KEY + '&distanceUnit=mi'
+
 
 def processInformation(row):
     #
@@ -58,55 +63,34 @@ def processInformation(row):
 
         insertRecord(insert_record + record_tuple)
 
-"""
-for i in range(1):
-    # file_name = 'G:/Advanced dbms/data/yellow_tripdata_2016-01' + '.csv'
-    file_name = 'data/yellow_tripdata_2016-12' + str(1) + '.csv'
-    df = pd.read_csv(file_name)
 
-    # from the airport
-
-    fromT = df.loc[
-        (df['pickup_longitude'].between(source_longitude_min, source_longitude_max)) & (
-            df['pickup_latitude'].between(source_latitude_min, source_latitude_max))]
-
-    # to the airport
-
-    to = df.loc[
-        (df['dropoff_longitude'].between(-73.8772, -73.8681)) & (df['dropoff_latitude'].between(40.7713, 40.7748))]
-    from_count += len(fromT)
-    to_count += len(to)
-
-    for index, row in fromT.iterrows():
-        processInformation(row)
-
-    for index, row in to.iterrows():
-        processInformation(row)
-"""
-#Function to calculate the distance for a given set of latitude and longitude values for source
-#and destination and returns the distance, rounded to 5 decimal places. Throws exception otherwise.
-def calculateDistance(source_latitude: str, source_longitude: str, destination_latitude: str,
-                      destination_longitude: str) -> float:
+# Function to calculate the distance for a given set of latitude and longitude values for source
+# and destination and returns the distance, rounded to 5 decimal places. Throws exception otherwise.
+def calculateDistance(source_latitude1: str, source_longitude1: str,
+                      destination_latitude1: str, destination_longitude1: str) -> float:
     try:
         # Check if the parameters are empty
-        if source_latitude == "" or source_longitude == "" or destination_latitude == "" or destination_longitude == "":
+        if source_latitude1 == "" or source_longitude1 == "" or destination_latitude1 == "" or destination_longitude1 == "":
             raise Exception("At least 1 argument is empty")
-
-        params = (source_longitude) + "," + (source_latitude) + ";" + (destination_longitude) + "," + (
-            destination_latitude) + '?overview=false'
-        r = requests.get(url=url + params)
-        # extracting data in json format
-        data = r.json()
-        distance_in_metres = data['routes'][0]['distance']
-        # 1 metre = 0.006 miles. Convert the api distance from meters to miles
-        distance_in_miles = distance_in_metres * 0.0006
-        return round(distance_in_miles,5)
+        params = "origins=" + source_latitude1 + "," + source_longitude1  + \
+                 "&destinations=" + destination_latitude1 + "," + destination_longitude1 + "&travelMode=driving"
+        finalURL = url.replace("$$$$", params)
+        response = requests.get(url=finalURL)
+        if response.status_code==200:
+            # extracting data in json format
+            data = response.json()
+            distanceArray = data['resourceSets'][0]['resources'][0]['results']
+            return distanceArray[0]['travelDistance'], distanceArray[0]['travelDuration']
+        else :
+            return -1,-1
     except Exception as e:
         print("Exception occurred : " + str(e))
         raise e
 
+
 try:
-    result= calculateDistance("40.77394","-73.87476","40.75431","-73.88225")
+    # origins=47.6044,-122.3345;47.6731,-122.1185;47.6149,-122.1936&destinations=45.5347,-122.6231;47.4747,-122.2057
+    result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
     print(result)
 except Exception as err:
     print(err.args)

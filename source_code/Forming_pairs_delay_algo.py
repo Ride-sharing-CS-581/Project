@@ -11,6 +11,8 @@ pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent1 = 20
 delay_factor_percent2 = 10
+tripWindow_start_time=""
+tripWindow_end_time=""
 
 
 def generatePoolID():
@@ -155,17 +157,17 @@ def sharing_condition(rideA, rideB):
 
     # print(type(A_delay))
 
-    AB = calculateDistance(A_dlat, A_dlon, B_dlat, B_dlon)
-    HA = calculateDistance(A_plat, A_plon, A_dlat, A_dlon)
-    HB = calculateDistance(B_plat, B_plon, B_dlat, B_dlon)
-    print(AB, HA, HB)
+    dist_AB,time_AB = calculateDistance(A_dlat, A_dlon,B_dlat, B_dlon)
+    dist_HA,time_HA = calculateDistance(A_plat, A_plon,A_dlat, A_dlon)
+    dist_HB,time_HB = calculateDistance(B_plat, B_plon, B_dlat, B_dlon)
+    print(dist_AB, dist_HA, dist_HB)
     distance_saved = 0
-    if HA + AB < HA + HB:
-        if HA + AB <= HB + B_delay:
-            distance_saved = HB - AB
-    if HB + AB < HA + HB:
-        if HB + AB <= HA + A_delay:
-            distance_saved = HA - AB
+    if dist_HA + dist_AB < dist_HA + dist_HB:
+        if dist_HA + dist_AB <= dist_HB + B_delay:
+            distance_saved = dist_HB - dist_AB
+    if dist_HB + dist_AB < dist_HA + dist_HB:
+        if dist_HB + dist_AB <= dist_HA + A_delay:
+            distance_saved = dist_HA - dist_AB
 
     return distance_saved
     # source to d1 and d2 - findSS the optimal route
