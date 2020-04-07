@@ -1,7 +1,7 @@
 from mysql.connector import connect
 import sys
 
-connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='locations', user='root', password='rootroot',
+connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing', user='root', password='rootroot',
                      auth_plugin='mysql_native_password')
 print('Attempting to connect to the database...')
 if connection.is_connected():
@@ -12,7 +12,7 @@ else:
 
 
 # Function to check if a record exists in the database
-def checkIfRecordExists(query):
+def getRecords(query):
     try:
         cursor = connection.cursor()
         cursor.execute(query)
