@@ -84,10 +84,10 @@ def getNearestIntersections(destLat:str, destLong:str, precisionLong:str):
         return records
     except Exception as e:
         print("Error while connecting to MySQL", e)
-#     finally:
-#         cursor.close()
-#         connection.close()
-#         print("MySQL connection is closed")
+    finally:
+        cursor.close()
+        connection.close()
+        print("MySQL connection is closed")
 
 
 # Checks if there exists an intersection in the radius else it would consider the destinations as the new intersection
@@ -99,7 +99,7 @@ def getMinDistanceIntersection(sourceLat:str, sourceLong:str, destLat:str, destL
             distance = str(calculateDistance(sourceLat,sourceLong,destLat,destLong))
             query = "insert into intersections(latitude, longitude, distance) values ("+destLat+","+destLong+","+distance+")"
             insertRecord(query)
-            return (destLat, destLong) 
+            return (destLat, destLong,distance)
         else:
             if len(result)>0:
 #                 print(result)
@@ -108,7 +108,7 @@ def getMinDistanceIntersection(sourceLat:str, sourceLong:str, destLat:str, destL
                 distance = str(calculateDistance(sourceLat,sourceLong,destLat,destLong))
                 query = "insert into intersections(latitude, longitude, distance) values ("+destLat+","+destLong+","+distance+")"
                 insertRecord(query)
-                return (destLat, destLong)
+                return ˜(destLat, destLong,distance)
 
                    
 # code which was written before. Donot delete
