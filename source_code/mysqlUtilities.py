@@ -95,32 +95,34 @@ def getNearestIntersections(destLat: str, destLong: str, precisionLong: str):
     except Exception as e:
         print("Error while connecting to MySQL", e)
 
+    finally:
+        cursor.close()
+        connection.close()
+        print("MySQL connection is closed")
 
-#     finally:
-#         cursor.close()
-#         connection.close()
-#         print("MySQL connection is closed")
 
 
 # Checks if there exists an intersection in the radius else it would consider the destinations as the new intersection
 # and returns the destination itself as the new intersection.
 # precisionLong is just placed as a place holder for now. 
-def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, destLong: str, precisionLong):
-    result = getNearestIntersections(destLat, destLong, precisionLong=0)
-    if result is None:
-        distance = str(calculateDistance(sourceLat, sourceLong, destLat, destLong))
-        query = "insert into intersections(latitude, longitude, distance) values (" + destLat + "," + destLong + "," + distance + ")"
-        insertRecord(query)
-        return destLat, destLong
-    else:
-        if len(result) > 0:
-            #                 print(result)
-            return result[0][0], result[0][1]
-        else:
-            distance = str(calculateDistance(sourceLat, sourceLong, destLat, destLong))
-            query = "insert into intersections(latitude, longitude, distance) values (" + destLat + "," + destLong + "," + distance + ")"
+def getMinDistanceIntersection(sourceLat:str, sourceLong:str, destLat:str, destLong:str, precisionLong):
+        result = getNearestIntersections(destLat, destLong, precisionLong=0)
+        if result is None:
+            distance = str(calculateDistance(sourceLat,sourceLong,destLat,destLong))
+            query = "insert into intersections(latitude, longitude, distance) values ("+destLat+","+destLong+","+distance+")"
             insertRecord(query)
-            return destLat, destLong
+            return (destLat, destLong,distance)
+        else:
+            if len(result)>0:
+#                 print(result)
+                return result
+            else: 
+                distance = str(calculateDistance(sourceLat,sourceLong,destLat,destLong))
+                query = "insert into intersections(latitude, longitude, distance) values ("+destLat+","+destLong+","+distance+")"
+                insertRecord(query)
+                return (destLat, destLong,distance)
+
+                   
 
 # code which was written before. Donot delete
 
