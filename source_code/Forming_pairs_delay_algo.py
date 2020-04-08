@@ -3,7 +3,7 @@ import random
 import time
 from itertools import combinations
 from Project.source_code.datapreprocessing import calculateDistance
-from Project.source_code.mysqlUtilities import insertRecord, getRecords
+from Project.source_code.mysqlUtilities import insertRecord, getRecords, getMinDistanceIntersection
 from datetime import datetime, timedelta
 
 pool_rides = list()
@@ -179,6 +179,9 @@ def sharing_condition(rideA, rideB):
     B_dlon = str(rideB['dropoff_longitude']).strip()
     B_plat = str(rideB['pickup_latitude']).strip()
     B_plon = str(rideB['pickup_longitude']).strip()
+
+    A_dlat, A_dlon = getMinDistanceIntersection(A_plat, A_plon, A_dlat, A_dlon)
+    B_dlat, B_dlon = getMinDistanceIntersection(B_plat, B_plon, B_dlat, B_dlon)
 
     dist_AB, time_AB = calculateDistance(A_dlat, A_dlon, B_dlat, B_dlon)
     dist_HA, time_HA = calculateDistance(A_plat, A_plon, A_dlat, A_dlon)
