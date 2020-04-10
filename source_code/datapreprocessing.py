@@ -10,7 +10,7 @@ API_KEY = "Asui_QOxZdbG4g0U9i_XayOUyZAJrCyI6PXqD_RCdi-wKDRnT-y73DOZgBmymjJY"
 # BING MAPS API
 url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
       '$$$$' \
-      + '&key=' + API_KEY + '&distanceUnit=mi%timeUnit=second'
+      + '&key=' + API_KEY + '&distanceUnit=mi&timeUnit=second'
 
 
 # Function to calculate the distance for a given set of latitude and longitude values for source

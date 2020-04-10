@@ -31,7 +31,7 @@ G = nx.Graph()
 def pick_a_ride(trips, origin, pool_window_time):
     global total_pools_running_time, total_pools_processed, total_time_delta_minutes
     try:
-        G.clear()
+
         print("Forming pools for the origin " + origin + " for pool window " + str(pool_window_time))
         if len(trips) == 0:
             print("No trips present to form pools for the given origin " + origin)
@@ -49,6 +49,7 @@ def pick_a_ride(trips, origin, pool_window_time):
 
             # Get the list of rides within the pool window period
             for pool in pool_map:
+                G.clear()
                 print("POOL ID ", pool)
                 pool_shares = pool_map[pool]
                 print("Number of requests ", len(pool_shares))
@@ -69,6 +70,8 @@ def pick_a_ride(trips, origin, pool_window_time):
                         distance_saved = sharing_condition(rideA, rideB, origin)
                         # if distance_saved is > 0, it means ride-sharing condition has been satisfied
                         if distance_saved > 0:
+                            G.add_node(rideA[0])
+                            G.add_node(rideB[0])
                             # store the values with ride id a and b along with final=the max distance saved
                             G.add_edge(rideA[0], rideB[0], weight=distance_saved)
                         index2 = index2 + 1
@@ -78,7 +81,7 @@ def pick_a_ride(trips, origin, pool_window_time):
                 if G.number_of_nodes() > 0:
 
                     # run maximum matching algorithm for ride-shareable graph G
-                    ride_shareable_nodes = max_weight_matching(G)
+                    ride_shareable_nodes = max_weight_matching.max_weight_matching(G)
                     total_distance_saved = 0
 
                     # Remove ride IDS that are paired from the array of RideIDS to filter non-shared Ride ids
@@ -100,10 +103,10 @@ def pick_a_ride(trips, origin, pool_window_time):
                     difference = float(difference.total_seconds())
 
                     # store in db
-                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel) values (" + \
+                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window) values (" + \
                                         str(pool) + "," + str(len(ride_shareable_nodes)) + "," + str(
                         difference) + "," + str(
-                        total_distance_saved) + "," + "\"" + rideLabel + "\"" + ");"
+                        total_distance_saved) + "," + "\"" + rideLabel + "\"," +str(pool_window_time) +");"
                     print(pool_insert_query)
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
@@ -129,9 +132,9 @@ def pick_a_ride(trips, origin, pool_window_time):
                     difference = float(difference.total_seconds())
                     total_time_delta_minutes = total_time_delta_minutes + difference
                     # store in db
-                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel) values (" + \
+                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window) values (" + \
                                         str(pool) + "," + str(len(rideIDS)) + "," + str(difference) + "," + str(
-                        0) + "," + "\"" + rideLabel + "\"" + ");"
+                        0) + "," + "\"" + rideLabel + "\"," +str(pool_window_time) +");"
                     print(pool_insert_query)
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
@@ -205,6 +208,7 @@ def sharing_condition(rideA, rideB, origin):
     # 1 hours = 3600s
     time_HA = time_HA / 3600
     time_HB = time_HB / 3600
+    time_AB = time_AB / 3600
 
     # If destination A is visited first and then B is visited or In To Laguardia case, B->A->LaGuardia
     # then calculate delayfactor(source->B or B->Destination(LaGuardia))
@@ -217,15 +221,18 @@ def sharing_condition(rideA, rideB, origin):
 
     # 𝑆𝑃(𝐴) + 𝑇(𝑑𝑒𝑠𝑡 𝐴 , 𝑑𝑒𝑠𝑡(𝐵)) < 𝑆𝑃(𝐵) + 𝐷elay(𝐵)
     tempDistanceArray = []
+
     if origin == "To Laguardia":
         if A_plat == B_plat and A_plon == B_plon:
             dist_AB = 0
         if dist_AB + dist_HB < dist_HA + dist_HB:  # 0 + HB < 2HA and 0 + X <= HA + A_Delay.
             if dist_AB + time_HB <= dist_HA + A_delay:
-                tempDistanceArray.push(dist_HA - dist_AB)
+                tempDistanceArray.append(dist_HA - dist_AB)
         if dist_AB + dist_HA < dist_HB + dist_HA:
             if dist_AB + time_HA <= dist_HB + B_delay:
-                tempDistanceArray.push(dist_HB - dist_AB)
+                tempDistanceArray.append(dist_HB - dist_AB)
+        if not len(tempDistanceArray) > 0:
+            tempDistanceArray.append(-1)
 
     else:
         # If the intersections are common, there is no time elapsed for travelling from one intersection
@@ -237,12 +244,14 @@ def sharing_condition(rideA, rideB, origin):
             # if dist_HA + time_AB <= dist_HB + B_delay:
             #     distance_saved = dist_HB - dist_AB
             if dist_HA + time_AB <= dist_HB + B_delay:
-                tempDistanceArray.push(dist_HB - dist_AB)
+                tempDistanceArray.append(dist_HB - dist_AB)
         if dist_HB + dist_AB < dist_HA + dist_HB:
             # if dist_HB + dist_AB <= dist_HA + A_delay:
             #     distance_saved = dist_HA - dist_AB
             if dist_HB + time_AB <= dist_HA + A_delay:
-                tempDistanceArray.push(dist_HA - dist_AB)
+                tempDistanceArray.append(dist_HA - dist_AB)
+        if not len(tempDistanceArray) > 0:
+            tempDistanceArray.append(-1)
     distance_saved = min(tempDistanceArray)
     return distance_saved
 
@@ -299,7 +308,8 @@ def load_data_from_source():
 
     # Read pool requests from database
     tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
-                        + "pickup_longitude, dropoff_latitude, dropoff_longitude from temp where tpep_pickup_datetime between \"" \
+                        + "pickup_longitude, dropoff_latitude, dropoff_longitude from temp where tpep_pickup_datetime " \
+                          "between \"" \
                         + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and dropoff_latitude between " + str(
         source_longitude_min) + \
                         " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
