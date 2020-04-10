@@ -1,285 +1,345 @@
-import pandas as pd
 import random
 import time
-from itertools import combinations
 from Project.source_code.datapreprocessing import calculateDistance
 from Project.source_code.mysqlUtilities import insertRecord, getRecords, getMinDistanceIntersection
 from datetime import datetime, timedelta
+import networkx as nx
+import networkx.algorithms.matching as max_weight_matching
 
 pool_rides = list()
 pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent = 20
-tripWindow_start_time = "29-01-2016 11:32"
-tripWindow_end_time = "29-01-2016 11:35"
+tripWindow_start_time = "2016-02-01 00:46:00"
+tripWindow_end_time = "2016-02-01 01:55:00"
 total_time_delta_minutes = 5
-ride_combinations = 2
+total_pools_running_time = 0
+total_pools_processed = 0
+
+# Laguardia Airport Co-ordinates
+source_latitude_min = 40.7714
+source_latitude_max = 40.7754
+source_longitude_max = -73.8572
+source_longitude_min = -73.8875
+random_pool_Ids = list(range(1000000))
+random_trip_Ids = list(range(2000000))
+trips_From_Laguardia = []
+trips_To_Laguardia = []
+G = nx.Graph()
 
 
-# Supports upto 1 Million ride-requests
-def generatePoolID():
-    list_of_ids = list(range(1000000))
-    random.shuffle(list_of_ids)
-    if len(list_of_ids) == 0:
-        raise Exception("All Pool Ids are exhausted. Cannot form pool. Quitting program")
-    else:
-        return list_of_ids.pop()
-
-
-# Function to form a networkx graph and run max_weight_matching
-# to get best set of edges for ride-sharing
-def formAdjacencyGraph(final_array):
-    import networkx as nx
-    import networkx.algorithms.matching as max_weight_matching
-    G = nx.Graph()
-    # Sample Input for testing purposes
-    temp = dict()
-    temp['D1'] = 1
-    temp['D2'] = 3
-    temp['D_save'] = 5
-    final_array.append(temp)
-    temp = dict()
-    temp['D1'] = 3
-    temp['D2'] = 4
-    temp['D_save'] = 2
-    final_array.append(temp)
-    # temp=dict()
-    # temp['D1']=2
-    # temp['D2']=4
-    # temp['D_save']=3
-    # final_array.append(temp)
-    # temp=dict()
-    # temp['D1']=2
-    # temp['D2']=3
-    # temp['D_save']=0
-    # final_array.append(temp)
-    for ride in final_array:
-        ride1 = ride['D1']
-        ride2 = ride['D2']
-        G.add_node(ride1)
-        G.add_node(ride2)
-        G.add_edge(ride1, ride2, weight=ride['D_save'])
-    print(G.number_of_nodes())
-    print(G.get_edge_data(1, 3))
-    return max_weight_matching.max_weight_matching(G), G
-
-
-def generateTripID():
-    tripIDS = list(range(3000))
-    random.shuffle(tripIDS)
-    return tripIDS.pop()
-
-
-def pick_a_ride(pool_window_time, origin):
-    # Form the pool map for the given pool window
-    pool_map = formPools(pool_window_time)
-    pools_ending_time = timedelta(total_time_delta_minutes).total_seconds()
-    poolsCount = 0
-    cumulative_pools_processing_time = -1
-    rideLabel = ""
-    if origin == "Laguardia":
-        rideLabel = "From LaGuardia"
-    else:
-        rideLabel = "To LaGuardia"
-
-    # Get the list of rides within the pool window period
-    for pool in pool_map:
-        print("POOL ID ", pool)
-        pool_shares = pool_map[pool]
-        print("Number of requests ", len(pool_shares))
-        number_of_rides = len(pool_shares)
-        rideIDS = []
-        for x in range(number_of_rides):
-            rideIDS.append(pool_shares[x][0])
-
-        start_time = datetime.utcnow()
-
-        comb = combinations(pool_shares, ride_combinations)
-        final_array = []
-        # Print the obtained combinations
-        for ride_combination in list(comb):
-            rideA = ride_combination[0]
-            rideB = ride_combination[1]
-            localData = dict()
-            distance_saved = sharing_condition(rideA, rideB)
-            # if distance_saved is > 0, it means ride-sharing condition has been satisfied
-            if distance_saved > 0:
-                # store the values with ride id a and b along with final=the max distance saved
-                localData["D1"] = rideA[0];
-                localData["D2"] = rideB[1];
-                localData["D_save"] = distance_saved
-                final_array.append(localData)
-
-        print(final_array)
-
-        # Form graph and get best set of edges for ride-sharing
-        best_nodes, Graph = formAdjacencyGraph(final_array)
-
-        total_distance_saved = 0
-
-        # Remove ride IDS that are paired from the array of RideIDS to filter non-shared Ride ids
-        for nodes in best_nodes:
-            if nodes[0] in rideIDS:
-                rideIDS.remove(nodes[0])
-            if nodes[1] in rideIDS:
-                rideIDS.remove(nodes[1])
-            total_distance_saved = total_distance_saved + Graph.get_edge_data(nodes[0], nodes[1])['weight']
-        total_distance_saved = float(total_distance_saved)
-        end_time = datetime.utcnow()
-        difference = end_time - start_time
-        cumulative_pools_processing_time = cumulative_pools_processing_time + difference.total_seconds()
-        difference = float(difference.total_seconds())
-
-        # check if the cumulative time has crossed the timeframe
-        if cumulative_pools_processing_time >= pools_ending_time:
-            print("Total Pools processed in " + total_time_delta_minutes + " is ", poolsCount)
+def pick_a_ride(trips, origin, pool_window_time):
+    global total_pools_running_time, total_pools_processed, total_time_delta_minutes
+    try:
+        G.clear()
+        print("Forming pools for the origin " + origin + " for pool window " + str(pool_window_time))
+        if len(trips) == 0:
+            print("No trips present to form pools for the given origin " + origin)
         else:
-            poolsCount = poolsCount + 1
+            # Form the pool map for the given pool window
+            pool_map = formPools(trips, pool_window_time)
+            pools_ending_time = timedelta(total_time_delta_minutes).total_seconds()
+            poolsCount = 0
+            cumulative_pools_processing_time = 0
+            rideLabel = ""
+            if origin == "From Laguardia":
+                rideLabel = "From LaGuardia"
+            else:
+                rideLabel = "To LaGuardia"
 
-        print("Time taken in seconds for processing pool " + pool, difference)
+            # Get the list of rides within the pool window period
+            for pool in pool_map:
+                print("POOL ID ", pool)
+                pool_shares = pool_map[pool]
+                print("Number of requests ", len(pool_shares))
+                number_of_rides = len(pool_shares)
+                isRideSharingDone = False
+                start_time = datetime.utcnow()
+                final_array = []
+                index1 = 0
+                length = len(pool_shares)
+                rideIDS = set()
+                # Print the obtained combinations
+                while index1 < length:
+                    rideIDS.add(pool_shares[index1][0])
+                    index2 = index1 + 1
+                    while index2 < length:
+                        rideA = pool_shares[index1]
+                        rideB = pool_shares[index2]
+                        distance_saved = sharing_condition(rideA, rideB, origin)
+                        # if distance_saved is > 0, it means ride-sharing condition has been satisfied
+                        if distance_saved > 0:
+                            # store the values with ride id a and b along with final=the max distance saved
+                            G.add_edge(rideA[0], rideB[0], weight=distance_saved)
+                        index2 = index2 + 1
+                    index1 = index1 + 1
 
-        # store in db
-        pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel) values (" + \
-                            str(pool) + "," + str(len(best_nodes)) + "," + str(difference) + "," + str(
-            total_distance_saved) + "," + rideLabel + ");"
-        print(pool_insert_query)
-        database_response = insertRecord(pool_insert_query)
-        print(database_response)
-        tripID = generateTripID()
-        # Insert ride-sharable requests as
-        for nodes in best_nodes:
-            trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,ride_t_id,isRideShared,rideLabel) " \
-                                       "values (" + \
-                                       str(tripID) + "," + str(pool) + "," + str(
-                nodes[0]) + "," + "True" + "," + rideLabel + \
-                                       ");"
-            insertRecord(trip_detail_insert_query)
-            trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,ride_t_id,isRideShared,rideLabel) values (" + \
-                                       str(tripID) + "," + str(pool) + "," + str(
-                nodes[1]) + "," + "True" + "," + rideLabel + \
-                                       ")"
-            insertRecord(trip_detail_insert_query)
+                # Means that there is at least 1 pair satisfying ride-sharing condition
+                if G.number_of_nodes() > 0:
 
-        # insert records that are not ride-shared
-        for rideID in rideIDS:
-            trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,ride_t_id,isRideShared,rideLabel) values (" + \
-                                       str(tripID) + "," + str(pool) + "," + str(
-                rideID) + "," + "False" + "," + rideLabel + \
-                                       ")"
-            insertRecord(trip_detail_insert_query)
+                    # run maximum matching algorithm for ride-shareable graph G
+                    ride_shareable_nodes = max_weight_matching(G)
+                    total_distance_saved = 0
+
+                    # Remove ride IDS that are paired from the array of RideIDS to filter non-shared Ride ids
+                    for nodes in ride_shareable_nodes:
+                        if nodes[0] in rideIDS:
+                            rideIDS.remove(nodes[0])
+                        if nodes[1] in rideIDS:
+                            rideIDS.remove(nodes[1])
+                        total_distance_saved = total_distance_saved + G.get_edge_data(nodes[0], nodes[1])['weight']
+
+                    total_distance_saved = float(total_distance_saved)
+
+                    # get the end time meaning that pool processing is complete
+                    end_time = datetime.utcnow()
+                    difference = end_time - start_time
+                    # Keep track of cumulative time that is elapsed
+                    cumulative_pools_processing_time = cumulative_pools_processing_time + difference.total_seconds()
+                    total_pools_running_time = total_pools_running_time + cumulative_pools_processing_time
+                    difference = float(difference.total_seconds())
+
+                    # store in db
+                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel) values (" + \
+                                        str(pool) + "," + str(len(ride_shareable_nodes)) + "," + str(
+                        difference) + "," + str(
+                        total_distance_saved) + "," + "\"" + rideLabel + "\"" + ");"
+                    print(pool_insert_query)
+                    database_response = insertRecord(pool_insert_query)
+                    print(database_response)
+                    isRideSharingDone = True
+                    tripID = random_trip_Ids.pop()
+                    # Insert ride-sharable requests as individual trips
+                    for nodes in ride_shareable_nodes:
+                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) " \
+                                                   "values (" + \
+                                                   str(tripID) + "," + str(pool) + "," + str(
+                            nodes[0]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
+                                                   ");"
+                        insertRecord(trip_detail_insert_query)
+                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) values (" + \
+                                                   str(tripID) + "," + str(pool) + "," + str(
+                            nodes[1]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
+                                                   ")"
+                        insertRecord(trip_detail_insert_query)
+                # If ridesharing is not done, no trips are combined.
+                if not isRideSharingDone:
+                    end_time = datetime.utcnow()
+                    difference = end_time - start_time
+                    difference = float(difference.total_seconds())
+                    total_time_delta_minutes = total_time_delta_minutes + difference
+                    # store in db
+                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel) values (" + \
+                                        str(pool) + "," + str(len(rideIDS)) + "," + str(difference) + "," + str(
+                        0) + "," + "\"" + rideLabel + "\"" + ");"
+                    print(pool_insert_query)
+                    database_response = insertRecord(pool_insert_query)
+                    print(database_response)
+
+                # insert records that are not ride-shared
+                for rideID in rideIDS:
+                    # store in db
+                    tripID = random_trip_Ids.pop()
+                    trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) values (" + \
+                                               str(tripID) + "," + str(pool) + "," + str(
+                        rideID) + "," + "0" + "," + "\"" + rideLabel + "\"" + \
+                                               ")"
+                    insertRecord(trip_detail_insert_query)
+
+                # check if the cumulative time has crossed the timeframe
+                if total_pools_running_time >= pools_ending_time:
+                    print("Total Pools processed in " + total_time_delta_minutes + " is ", total_pools_processed)
+
+                else:
+                    total_pools_processed = total_pools_processed + 1
+
+                print("Time taken in seconds for processing pool " + str(pool) + " with " + str(len(
+                    pool_shares)) + " rides "
+                      + str(difference * 0.0166667) + " minutes")
+    except Exception as e:
+        raise e
 
 
-def sharing_condition(rideA, rideB):
-    # check for the 2 conditions
-    A_dlat = str(rideA['dropoff_latitude']).strip()
-    A_dlon = str(rideA['dropoff_longitude']).strip()
-    A_plat = str(rideA['pickup_latitude']).strip()
-    A_plon = str(rideA['pickup_longitude']).strip()
-    B_dlat = str(rideB['dropoff_latitude']).strip()
-    B_dlon = str(rideB['dropoff_longitude']).strip()
-    B_plat = str(rideB['pickup_latitude']).strip()
-    B_plon = str(rideB['pickup_longitude']).strip()
+# Function to check if trips are mergeable ?
+def sharing_condition(rideA, rideB, origin):
+    A_dlat = str(rideA[4])
+    A_dlon = str(rideA[5])
+    A_plat = str(rideA[2])
+    A_plon = str(rideA[3])
 
-    A_dlat, A_dlon = getMinDistanceIntersection(A_plat, A_plon, A_dlat, A_dlon)
-    B_dlat, B_dlon = getMinDistanceIntersection(B_plat, B_plon, B_dlat, B_dlon)
+    B_dlat = str(rideB[4])
+    B_dlon = str(rideB[5])
+    B_plat = str(rideB[2])
+    B_plon = str(rideB[3])
 
-    dist_AB, time_AB = calculateDistance(A_dlat, A_dlon, B_dlat, B_dlon)
+    if origin == "To Laguardia":
+        A_plat, A_plon = getMinDistanceIntersection(A_plat, A_plon, A_dlat, A_dlon, origin)
+        B_plat, B_plon = getMinDistanceIntersection(B_plat, B_plon, B_dlat, B_dlon, origin)
+    else:
+        A_dlat, A_dlon = getMinDistanceIntersection(A_plat, A_plon, A_dlat, A_dlon, origin)
+        B_dlat, B_dlon = getMinDistanceIntersection(B_plat, B_plon, B_dlat, B_dlon, origin)
+
+    A_dlat = str(A_dlat)
+    A_dlon = str(A_dlon)
+    A_plon = str(A_plon)
+    A_plat = str(A_plat)
+
+    B_dlat = str(B_dlat)
+    B_dlon = str(B_dlon)
+    B_plon = str(B_plon)
+    B_plat = str(B_plat)
+
+    dist_AB = 0
+
+    if origin == "To Laguardia":
+        # the distance is in miles and the time returned is in seconds.
+        dist_AB, time_AB = calculateDistance(A_plat, A_plon, B_plat, B_plon)
+    else:
+        # the distance is in miles and the time returned is in seconds.
+        dist_AB, time_AB = calculateDistance(A_dlat, A_dlon, B_dlat, B_dlon)
+
     dist_HA, time_HA = calculateDistance(A_plat, A_plon, A_dlat, A_dlon)
     dist_HB, time_HB = calculateDistance(B_plat, B_plon, B_dlat, B_dlon)
 
-    # If destination A is visited first and then B is visited, calculate delayfactor(source->B)
+    # Convert the seconds to hour
+    # 1 hours = 3600s
+    time_HA = time_HA / 3600
+    time_HB = time_HB / 3600
+
+    # If destination A is visited first and then B is visited or In To Laguardia case, B->A->LaGuardia
+    # then calculate delayfactor(source->B or B->Destination(LaGuardia))
     B_delay = (delay_factor_percent / 100) * time_HB
-    # If destination B is visited first and then A is visited, calculate delayfactor(source->A)
+    # If destination B is visited first and then A is visited or In To Laguardia case, A->B->Laguardia
+    # then calculate delayfactor(source(LaGuardia)->A or A->Destination(LaGuardia))
     A_delay = (delay_factor_percent / 100) * time_HA
 
     print(dist_AB, dist_HA, dist_HB)
-    distance_saved = -1
 
-    if dist_HA + dist_AB < dist_HA + dist_HB:
-        if dist_HA + dist_AB <= dist_HB + B_delay:
-            distance_saved = dist_HB - dist_AB
-    if dist_HB + dist_AB < dist_HA + dist_HB:
-        if dist_HB + dist_AB <= dist_HA + A_delay:
-            distance_saved = dist_HA - dist_AB
+    # 𝑆𝑃(𝐴) + 𝑇(𝑑𝑒𝑠𝑡 𝐴 , 𝑑𝑒𝑠𝑡(𝐵)) < 𝑆𝑃(𝐵) + 𝐷elay(𝐵)
+    tempDistanceArray = []
+    if origin == "To Laguardia":
+        if A_plat == B_plat and A_plon == B_plon:
+            dist_AB = 0
+        if dist_AB + dist_HB < dist_HA + dist_HB:  # 0 + HB < 2HA and 0 + X <= HA + A_Delay.
+            if dist_AB + time_HB <= dist_HA + A_delay:
+                tempDistanceArray.push(dist_HA - dist_AB)
+        if dist_AB + dist_HA < dist_HB + dist_HA:
+            if dist_AB + time_HA <= dist_HB + B_delay:
+                tempDistanceArray.push(dist_HB - dist_AB)
 
+    else:
+        # If the intersections are common, there is no time elapsed for travelling from one intersection
+        # to another and both the riders can be dropped at either of their points.
+        if A_dlat == B_dlat and A_dlon == B_dlon:
+            time_AB = 0
+
+        if dist_HA + dist_AB < dist_HA + dist_HB:
+            # if dist_HA + time_AB <= dist_HB + B_delay:
+            #     distance_saved = dist_HB - dist_AB
+            if dist_HA + time_AB <= dist_HB + B_delay:
+                tempDistanceArray.push(dist_HB - dist_AB)
+        if dist_HB + dist_AB < dist_HA + dist_HB:
+            # if dist_HB + dist_AB <= dist_HA + A_delay:
+            #     distance_saved = dist_HA - dist_AB
+            if dist_HB + time_AB <= dist_HA + A_delay:
+                tempDistanceArray.push(dist_HA - dist_AB)
+    distance_saved = min(tempDistanceArray)
     return distance_saved
 
 
-def select_Rides_pool(pool_time: int):
-    # Read pool requests from database
-    select_query = "select RideID, tpep_pickup_datetime, tpep_dropoff_datetime ,pickup_latitude," \
-                   "pickup_longitude, DelayFactor from taxitrips where tpep_pickup_datetime between " \
-                   + "str_to_date(tripWindow_start_time,'%d-%m-%Y %H:%i:%s') " \
-                     "and str_to_date(tripWindow_end_time,'%d-%m-%Y %H:%i:%s')" \
-                   + " ORDER BY tpep_pickup_datetime ASC"
-    records = getRecords(select_query)
-    if records.count() == 0:
-        print("The are no records in the database that satisfied the given query: " + select_query)
-    else:
-        data = records
-        # dataframe will have first ride which has not yet been rideshared.
+# function to form pools for the given pool window
+def formPools(trips, pool_window: int):
+    try:
+
+        data = trips
         # The starting trip time of the first trip from the pool of requests
-        pool_beiginning_time = data['tpep_pickup_datetime'].iloc[0]
-        timeObject = datetime.strptime(pool_beiginning_time, '%d-%m-%Y %H:%M')
-        pool_ending_time = timeObject + timedelta(minutes=pool_time)
-        # Finding all the rides which belongs to the pool window
-        # Checking the condition pool_beginning_time >= pickup time <= pool_ending_time
-        # Here we are assuming the pickup time as ride request time
-
-        locs = (data['tpep_pickup_datetime'] > timeObject.strftime("%d-%m-%Y %H:%M")) & (
-                data['tpep_pickup_datetime'] < pool_ending_time.strftime("%d-%m-%Y %H:%M"))
-        pool_rides = data[locs]
-        # print(pool_rides)
-        return pool_rides
-
-
-def formPools(pool_time: int):
-    global pool_rides
-
-    # Read pool requests from database
-    select_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
-                   "pickup_longitude, DelayFactor from taxitrips where tpep_pickup_datetime between " \
-                   + "str_to_date('" + tripWindow_start_time + "','%d-%m-%Y %H:%i:%s') " \
-                                                               "and str_to_date('" + tripWindow_end_time + "','%d-%m-%Y %H:%i:%s')" \
-                   + " ORDER BY tpep_pickup_datetime ASC"
-
-    records = getRecords(select_query)
-    if len(records) == 0:
-        print("No records fetched for the given query : " + select_query)
-    else:
-
-        data = records
-        start_time = data[0][1]
-        # The starting trip time of the first trip from the pool of requests
-        pool_beginning_time = start_time
-        pool_ending_time = pool_beginning_time + timedelta(minutes=pool_time)
+        pool_beginning_time = data[0][1]
+        pool_ending_time = pool_beginning_time + timedelta(minutes=pool_window)
         poolMap = dict()
         poolRequests = list()
+        # Iterate through every request, check if they fall within the pool's time frame and create a
+        # dictionary of poolID-rides
         for row in data:
             print(row[1])
-
+            # Check if the current trip pickup time is within the pool's timeframe
             if pool_beginning_time <= row[1] < pool_ending_time:
                 poolRequests.append(row)
             else:
-                poolID = generatePoolID()
+                # Get poolID, create map entry for data in poolRequests array and extend pool timeframe based on
+                # current trip time
+                poolID = random_pool_Ids.pop()
                 poolMap[poolID] = poolRequests
                 poolRequests = list()
                 poolRequests.append(row)
                 pool_beginning_time = row[1]
-                pool_ending_time = pool_beginning_time + timedelta(minutes=pool_time)
+                pool_ending_time = pool_beginning_time + timedelta(minutes=pool_window)
 
         # Add the pending request as another pool entry
         if len(poolRequests) > 0:
-            poolID = generatePoolID()
+            poolID = random_pool_Ids.pop()
             poolMap[poolID] = poolRequests
-        print(poolMap)
-        return poolMap
+            print(poolMap)
+            return poolMap
+    except Exception as e:
+        raise Exception("Exception at forming pools " + str(e))
 
 
-print("Starting Program")
-program_start_time = time.time()
-print("Starting Ride-Sharing logic for pool window of time: " + pool_window_time1 + " minutes")
-pick_a_ride(pool_window_time1)
-print("Starting Ride-Sharing logic for pool window of time: " + pool_window_time2 + " minutes")
-pick_a_ride(pool_window_time2)
-print("--- %s seconds ---" % (time.time() - program_start_time))
+def load_data_from_source():
+    global pool_rides
+    global trips_From_Laguardia, trips_To_Laguardia
+    # Read pool requests from database
+    fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
+                                                                                    " dropoff_longitude from temp where tpep_pickup_datetime between \"" \
+                          + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and pickup_latitude " \
+                                                                                        "between " + \
+                          str(source_longitude_min) + \
+                          " and " + str(source_latitude_max) + " and pickup_longitude between " + str(
+        source_longitude_min) + " and " + \
+                          str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+    # Read pool requests from database
+    tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
+                        + "pickup_longitude, dropoff_latitude, dropoff_longitude from temp where tpep_pickup_datetime between \"" \
+                        + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and dropoff_latitude between " + str(
+        source_longitude_min) + \
+                        " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
+        source_longitude_min) + " and " + \
+                        str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+    records1 = getRecords(fromlaguardia_query)
+    records2 = getRecords(tolaguardia_query)
+    print("Fetched # records from the database ", len(records1))
+    print("Fetched # records from the database ", len(records2))
+    isFromLaguardiaDataPresent = False
+    isToLaguardiaDataPresent = False
+
+    if len(records1) == 0:
+        print("No records fetched for the given query : " + fromlaguardia_query)
+        isFromLaguardiaDataPresent = True
+
+    if len(records2) == 0:
+        print("No records fetched for the given query : " + tolaguardia_query)
+        isToLaguardiaDataPresent = True
+
+    if isFromLaguardiaDataPresent and isToLaguardiaDataPresent:
+        print("No data is available to process ride-sharing ")
+    else:
+        trips_From_Laguardia, trips_To_Laguarida = records1, records2
+
+
+def main():
+    print("Starting Program")
+    program_start_time = time.time()
+    random.shuffle(random_pool_Ids)
+    random.shuffle(random_trip_Ids)
+    load_data_from_source()
+    print("Starting Ride-Sharing logic for pool window of time: " + str(pool_window_time1) + " minutes")
+    pick_a_ride(trips_From_Laguardia, "From Laguardia", pool_window_time1)
+    pick_a_ride(trips_To_Laguardia, "To Laguardia", pool_window_time1)
+    pick_a_ride(trips_From_Laguardia, "From Laguardia", pool_window_time2)
+    pick_a_ride(trips_To_Laguardia, "To Laguardia", pool_window_time2)
+    print("--- %s seconds ---" % (time.time() - program_start_time))
+
+
+if __name__ == "__main__":
+    main()
