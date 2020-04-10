@@ -101,12 +101,12 @@ def pick_a_ride(trips, origin, pool_window_time):
                     cumulative_pools_processing_time = cumulative_pools_processing_time + difference.total_seconds()
                     total_pools_running_time = total_pools_running_time + cumulative_pools_processing_time
                     difference = float(difference.total_seconds())
-
+                    record_entry=datetime.utcnow()
                     # store in db
-                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window) values (" + \
+                    pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window,record_entry) values (" + \
                                         str(pool) + "," + str(len(ride_shareable_nodes)) + "," + str(
                         difference) + "," + str(
-                        total_distance_saved) + "," + "\"" + rideLabel + "\"," +str(pool_window_time) +");"
+                        total_distance_saved) + "," + "\"" + rideLabel + "\"," +str(pool_window_time) +str(record_entry)+");"
                     print(pool_insert_query)
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
@@ -114,13 +114,13 @@ def pick_a_ride(trips, origin, pool_window_time):
                     tripID = random_trip_Ids.pop()
                     # Insert ride-sharable requests as individual trips
                     for nodes in ride_shareable_nodes:
-                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) " \
+                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) " \
                                                    "values (" + \
                                                    str(tripID) + "," + str(pool) + "," + str(
                             nodes[0]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
                                                    ");"
                         insertRecord(trip_detail_insert_query)
-                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) values (" + \
+                        trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) values (" + \
                                                    str(tripID) + "," + str(pool) + "," + str(
                             nodes[1]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
                                                    ")"
@@ -138,12 +138,15 @@ def pick_a_ride(trips, origin, pool_window_time):
                     print(pool_insert_query)
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
-
+                # Update pool entry to update count to the sum of exsitingvalue+ count of individual trips
+                update_pool_query = "update pool_details set count_of_rides=count_of_rides"+str(len(rideIDS))+\
+                                    " where pool_id="+str(pool)
+                print(update_pool_query)
                 # insert records that are not ride-shared
                 for rideID in rideIDS:
                     # store in db
                     tripID = random_trip_Ids.pop()
-                    trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel) values (" + \
+                    trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) values (" + \
                                                str(tripID) + "," + str(pool) + "," + str(
                         rideID) + "," + "0" + "," + "\"" + rideLabel + "\"" + \
                                                ")"
