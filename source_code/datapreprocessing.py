@@ -7,31 +7,37 @@ to_count = 0
 # API KEY
 API_KEY = "Asui_QOxZdbG4g0U9i_XayOUyZAJrCyI6PXqD_RCdi-wKDRnT-y73DOZgBmymjJY"
 
-# BING MAPS API
-url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
-      '$$$$' \
-      + '&key=' + API_KEY + '&distanceUnit=mi&timeUnit=second'
+# # BING MAPS API
+# url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
+#       '$$$$' \
+#       + '&key=' + API_KEY + '&distanceUnit=mi&timeUnit=second'
+
+# API
+url = 'http://router.project-osrm.org/route/v1/driving/'
 
 
 # Function to calculate the distance for a given set of latitude and longitude values for source
 # and destination and returns the distance and time. Throws exception otherwise.
-def calculateDistance(source_latitude1: str, source_longitude1: str,
-                      destination_latitude1: str, destination_longitude1: str) -> float:
+def calculateDistance(source_latitude: str, source_longitude: str, destination_latitude: str,
+                      destination_longitude: str) -> float:
     try:
         # Check if the parameters are empty
-        if source_latitude1 == "" or source_longitude1 == "" or destination_latitude1 == "" or destination_longitude1 == "":
+        if source_latitude == "" or source_longitude == "" or destination_latitude == "" or destination_longitude == "":
             raise Exception("At least 1 argument is empty")
-        params = "origins=" + source_latitude1 + "," + source_longitude1 + \
-                 "&destinations=" + destination_latitude1 + "," + destination_longitude1 + "&travelMode=driving"
-        finalURL = url.replace("$$$$", params)
-        response = requests.get(url=finalURL)
-        if response.status_code == 200:
+
+        params = (source_longitude) + "," + (source_latitude) + ";" + (destination_longitude) + "," + (
+            destination_latitude) + '?overview=false'
+        r = requests.get(url=url + params)
+        if r.status_code ==200:
             # extracting data in json format
-            data = response.json()
-            distanceArray = data['resourceSets'][0]['resources'][0]['results']
-            return distanceArray[0]['travelDistance'], distanceArray[0]['travelDuration']
+            data = r.json()
+            distance_in_metres = data['routes'][0]['distance']
+            # 1 metre = 0.006 miles. Convert the api distance from meters to miles
+            distance_in_miles = distance_in_metres * 0.0006
+            return distance_in_miles, data['routes'][0]['duration']
         else:
-            return -1, -1
+            print("No API response. Status is "+r.status_code)
+            return -1,-1
     except Exception as e:
         print("Exception occurred : " + str(e))
         raise e
@@ -39,7 +45,7 @@ def calculateDistance(source_latitude1: str, source_longitude1: str,
 
 try:
     # origins=47.6044,-122.3345;47.6731,-122.1185;47.6149,-122.1936&destinations=45.5347,-122.6231;47.4747,-122.2057
-    # result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
+    #result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
     print("")
 except Exception as err:
     print(err.args)
