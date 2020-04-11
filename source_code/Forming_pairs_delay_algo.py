@@ -50,7 +50,7 @@ def pick_a_ride(trips, origin, pool_window_time):
             # Get the list of rides within the pool window period
             for pool in pool_map:
                 G.clear()
-                ride_shared_nodes_count=0
+                ride_shared_nodes_count = 0
                 print("POOL ID ", pool)
                 pool_shares = pool_map[pool]
                 print("Number of requests ", len(pool_shares))
@@ -61,9 +61,11 @@ def pick_a_ride(trips, origin, pool_window_time):
                 index1 = 0
                 length = len(pool_shares)
                 rideIDS = set()
+                rideIDSWithDistance=dict()
                 # Print the obtained combinations
                 while index1 < length:
                     rideIDS.add(pool_shares[index1][0])
+                    rideIDSWithDistance[pool_shares[index1][0]]=pool_shares[index1]
                     index2 = index1 + 1
                     while index2 < length:
                         rideA = pool_shares[index1]
@@ -73,7 +75,7 @@ def pick_a_ride(trips, origin, pool_window_time):
                         if distance_saved > 0:
                             G.add_node(rideA[0])
                             G.add_node(rideB[0])
-                            # store the values with ride id a and b along with final=the max distance saved
+                            # store the values with ride id a and b along with the max distance saved
                             G.add_edge(rideA[0], rideB[0], weight=distance_saved)
                         index2 = index2 + 1
                     index1 = index1 + 1
@@ -120,12 +122,12 @@ def pick_a_ride(trips, origin, pool_window_time):
                                                    "values (" + \
                                                    str(tripID) + "," + str(pool) + "," + str(
                             nodes[0]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
-                                                   ",\"" +str(record_entry)+ "\");"
+                                                   ",\"" + str(record_entry) + "\");"
                         insertRecord(trip_detail_insert_query)
                         trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) values (" + \
                                                    str(tripID) + "," + str(pool) + "," + str(
                             nodes[1]) + "," + "1" + "," + "\"" + rideLabel + "\"" + \
-                                               ",\""+str(record_entry)+"\")"
+                                                   ",\"" + str(record_entry) + "\")"
                         insertRecord(trip_detail_insert_query)
                 record_entry = datetime.utcnow()
                 # If ridesharing is not done, no trips are combined.
@@ -134,7 +136,7 @@ def pick_a_ride(trips, origin, pool_window_time):
                     difference = end_time - start_time
                     difference = float(difference.total_seconds())
                     total_time_delta_minutes = total_time_delta_minutes + difference
-
+                    
                     # store in db
                     pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window,record_entry) values (" + \
                                         str(pool) + "," + str(len(rideIDS)) + "," + str(difference) + "," + str(
@@ -144,7 +146,8 @@ def pick_a_ride(trips, origin, pool_window_time):
                     print(database_response)
                 else:
                     # Update pool entry to update count to the sum of existing value+ count of individual trips
-                    update_pool_query = "update pool_details set count_of_rides="+str(ride_shared_nodes_count+len(rideIDS))  + \
+                    update_pool_query = "update pool_details set count_of_rides=" + str(
+                        ride_shared_nodes_count + len(rideIDS)) + \
                                         " where pool_id=" + str(pool)
                     print(update_pool_query)
                     insertRecord(update_pool_query)
@@ -310,7 +313,7 @@ def load_data_from_source():
                                                                                     " dropoff_longitude from temp where tpep_pickup_datetime between \"" \
                           + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and pickup_latitude " \
                                                                                         "between " + \
-                          str(source_longitude_min) + \
+                          str(source_latitude_min) + \
                           " and " + str(source_latitude_max) + " and pickup_longitude between " + str(
         source_longitude_min) + " and " + \
                           str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
@@ -320,7 +323,7 @@ def load_data_from_source():
                         + "pickup_longitude, dropoff_latitude, dropoff_longitude from temp where tpep_pickup_datetime " \
                           "between \"" \
                         + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and dropoff_latitude between " + str(
-        source_longitude_min) + \
+        source_latitude_min) + \
                         " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
         source_longitude_min) + " and " + \
                         str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
