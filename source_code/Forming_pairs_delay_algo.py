@@ -312,6 +312,7 @@ def load_data_from_source():
     fromLaguardiaPoolsProcessedCount = 0
     toLaguardiaPoolsProcesedCount = 0
     cumulativeSum=0
+    isDataShown= False
     computationTimeInSeconds = timedelta(minutes=total_time_delta_minutes).total_seconds()
     # Get the 1st starting trip record whose pickup time is in between trip window start time and trip window end time
     trip_records_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
@@ -373,7 +374,7 @@ def load_data_from_source():
                 fromLaguardiaPoolsProcessedCount = fromLaguardiaPoolsProcessedCount + 1
                 ending_time = datetime.utcnow()
                 cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
-                if cumulativeSum >= computationTimeInSeconds:
+                if cumulativeSum >= computationTimeInSeconds and isDataShown==False:
                     print("Trips created in {} for pool window of {} minutes is given below".format(
                         total_time_delta_minutes, pool_window_time1))
                     print("--- Total Pools Created is {}".format(
@@ -386,7 +387,8 @@ def load_data_from_source():
                         "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
                     print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
                         toLaguardiaPoolsProcesedCount))
-                    break
+                    isDataShown=True
+
 
             if len(records2) == 0:
                 print("No records fetched for the given query : " + tolaguardia_query)
@@ -402,7 +404,7 @@ def load_data_from_source():
                 toLaguardiaPoolsProcesedCount = toLaguardiaPoolsProcesedCount + 1
                 ending_time = datetime.utcnow()
                 cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
-                if cumulativeSum >= computationTimeInSeconds:
+                if cumulativeSum >= computationTimeInSeconds and isDataShown == False:
                     print("Trips created in {} for pool window of {} minutes is given below".format(
                         total_time_delta_minutes, pool_window_time1))
                     print("--- Total Pools Created is {}".format(
@@ -415,7 +417,7 @@ def load_data_from_source():
                         "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
                     print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
                         toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
-                    break
+                    isDataShown=True
 
             pool_start_date = pool_end_date
             pool_end_date = pool_end_date + timedelta(minutes=pool_window_time1)
@@ -427,6 +429,7 @@ def load_data_from_source():
         toLaguardiaPoolsProcesedCount=0
         toLaguardiaPoolsCreatedCount=0
         cumulativeSum=0
+        isDataShown=False
         print("Started Analyzing trip requests for pool windows of " + str(pool_window_time2) + " minutes")
         # Create pools for 2st pool window
         while pool_end_date <= tripWindow_end_time:
@@ -469,7 +472,7 @@ def load_data_from_source():
                 fromLaguardiaPoolsProcessedCount = fromLaguardiaPoolsProcessedCount + 1
                 ending_time = datetime.utcnow()
                 cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
-                if cumulativeSum >= computationTimeInSeconds:
+                if cumulativeSum >= computationTimeInSeconds and isDataShown==False:
                     print("Trips created in {} for pool window of {} minutes is given below".format(
                         total_time_delta_minutes, pool_window_time2))
                     print("--- Total Pools Created is {}".format(
@@ -482,7 +485,7 @@ def load_data_from_source():
                         "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
                     print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
                         toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
-                    break
+                    isDataShown=True
 
             if len(records2) == 0:
                 print("No records fetched for the given query : " + tolaguardia_query)
@@ -496,7 +499,7 @@ def load_data_from_source():
                 toLaguardiaPoolsProcesedCount = toLaguardiaPoolsProcesedCount + 1
                 ending_time = datetime.utcnow()
                 cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
-                if cumulativeSum >= computationTimeInSeconds:
+                if cumulativeSum >= computationTimeInSeconds and isDataShown==False:
                     print("Trips created in {} for pool window of {} minutes is given below".format(
                         total_time_delta_minutes, pool_window_time2))
                     print("--- Total Pools Created is {}".format(
@@ -509,7 +512,7 @@ def load_data_from_source():
                         "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
                     print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
                         toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
-                    break
+                    isDataShown=True
             pool_start_date = pool_end_date
             pool_end_date = pool_end_date + timedelta(minutes=pool_window_time2)
 
