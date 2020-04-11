@@ -10,8 +10,8 @@ pool_rides = list()
 pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent = 20
-tripWindow_start_time = "2016-02-01 00:46:00"
-tripWindow_end_time = "2016-02-01 01:55:00"
+tripWindow_start_time = "2016-02-01 02:00:00"
+tripWindow_end_time = "2016-02-01 23:59:59"
 total_time_delta_minutes = 5
 total_pools_running_time = 0
 total_pools_processed = 0
@@ -28,16 +28,15 @@ trips_To_Laguardia = []
 G = nx.Graph()
 
 
-def pick_a_ride(trips, origin, pool_window_time):
+def pick_a_ride(pool_map, origin, pool_window_time):
     global total_pools_running_time, total_pools_processed, total_time_delta_minutes
     try:
 
         print("Forming pools for the origin " + origin + " for pool window " + str(pool_window_time))
-        if len(trips) == 0:
+        if len(pool_map.keys()) == 0:
             print("No trips present to form pools for the given origin " + origin)
         else:
-            # Form the pool map for the given pool window
-            pool_map = formPools(trips, pool_window_time)
+
             pools_ending_time = timedelta(total_time_delta_minutes).total_seconds()
             poolsCount = 0
             cumulative_pools_processing_time = 0
@@ -50,6 +49,7 @@ def pick_a_ride(trips, origin, pool_window_time):
             # Get the list of rides within the pool window period
             for pool in pool_map:
                 G.clear()
+                total_distance_saved = 0
                 ride_shared_nodes_count = 0
                 print("POOL ID ", pool)
                 pool_shares = pool_map[pool]
@@ -61,11 +61,11 @@ def pick_a_ride(trips, origin, pool_window_time):
                 index1 = 0
                 length = len(pool_shares)
                 rideIDS = set()
-                rideIDSWithDistance=dict()
+                rideIDSWithDistance = dict()
                 # Print the obtained combinations
                 while index1 < length:
                     rideIDS.add(pool_shares[index1][0])
-                    rideIDSWithDistance[pool_shares[index1][0]]=pool_shares[index1]
+                    rideIDSWithDistance[pool_shares[index1][0]] = pool_shares[index1][6]
                     index2 = index1 + 1
                     while index2 < length:
                         rideA = pool_shares[index1]
@@ -85,14 +85,16 @@ def pick_a_ride(trips, origin, pool_window_time):
 
                     # run maximum matching algorithm for ride-shareable graph G
                     ride_shareable_nodes = max_weight_matching.max_weight_matching(G)
-                    total_distance_saved = 0
+
                     ride_shared_nodes_count = len(ride_shareable_nodes)
                     # Remove ride IDS that are paired from the array of RideIDS to filter non-shared Ride ids
                     for nodes in ride_shareable_nodes:
                         if nodes[0] in rideIDS:
                             rideIDS.remove(nodes[0])
+                            del rideIDSWithDistance[nodes[0]]
                         if nodes[1] in rideIDS:
                             rideIDS.remove(nodes[1])
+                            del rideIDSWithDistance[nodes[1]]
                         total_distance_saved = total_distance_saved + G.get_edge_data(nodes[0], nodes[1])['weight']
 
                     total_distance_saved = float(total_distance_saved)
@@ -135,20 +137,24 @@ def pick_a_ride(trips, origin, pool_window_time):
                     end_time = datetime.utcnow()
                     difference = end_time - start_time
                     difference = float(difference.total_seconds())
-                    total_time_delta_minutes = total_time_delta_minutes + difference
-                    
+
+
+                    dist_saved = sum(rideIDSWithDistance.values())
                     # store in db
                     pool_insert_query = "insert into pool_details (pool_id,count_of_rides,time_taken,dist_saved,rideLabel,pool_window,record_entry) values (" + \
                                         str(pool) + "," + str(len(rideIDS)) + "," + str(difference) + "," + str(
-                        0) + "," + "\"" + rideLabel + "\"," + str(pool_window_time) + ",\"" + str(record_entry) + "\");"
+                        dist_saved) + "," + "\"" + rideLabel + "\"," + str(pool_window_time) + ",\"" + str(
+                        record_entry) + "\");"
                     print(pool_insert_query)
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
                 else:
+                    dist_saved = sum(rideIDSWithDistance.values())
                     # Update pool entry to update count to the sum of existing value+ count of individual trips
                     update_pool_query = "update pool_details set count_of_rides=" + str(
                         ride_shared_nodes_count + len(rideIDS)) + \
-                                        " where pool_id=" + str(pool)
+                                        ",dist_saved=" + str(
+                        total_distance_saved + dist_saved) + " where pool_id=" + str(pool)
                     print(update_pool_query)
                     insertRecord(update_pool_query)
                 # insert records that are not ride-shared
@@ -160,13 +166,6 @@ def pick_a_ride(trips, origin, pool_window_time):
                         rideID) + "," + "0" + "," + "\"" + rideLabel + "\"" + \
                                                ",\"" + str(record_entry) + "\")"
                     insertRecord(trip_detail_insert_query)
-
-                # check if the cumulative time has crossed the timeframe
-                if total_pools_running_time >= pools_ending_time:
-                    print("Total Pools processed in " + total_time_delta_minutes + " is ", total_pools_processed)
-
-                else:
-                    total_pools_processed = total_pools_processed + 1
 
                 print("Time taken in seconds for processing pool " + str(pool) + " with " + str(len(
                     pool_shares)) + " rides "
@@ -306,61 +305,223 @@ def formPools(trips, pool_window: int):
 
 
 def load_data_from_source():
-    global pool_rides
-    global trips_From_Laguardia, trips_To_Laguardia
-    # Read pool requests from database
-    fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                    " dropoff_longitude from temp where tpep_pickup_datetime between \"" \
-                          + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and pickup_latitude " \
-                                                                                        "between " + \
-                          str(source_latitude_min) + \
-                          " and " + str(source_latitude_max) + " and pickup_longitude between " + str(
-        source_longitude_min) + " and " + \
-                          str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+    global tripWindow_start_time,tripWindow_end_time
+    poolsCount = 0
+    fromLaguardiaPoolsCreatedCount = 0
+    toLaguardiaPoolsCreatedCount = 0
+    fromLaguardiaPoolsProcessedCount = 0
+    toLaguardiaPoolsProcesedCount = 0
+    cumulativeSum=0
+    computationTimeInSeconds = timedelta(minutes=total_time_delta_minutes).total_seconds()
+    # Get the 1st starting trip record whose pickup time is in between trip window start time and trip window end time
+    trip_records_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
+                                                                                   "dropoff_longitude,trip_distance from temp " \
+                                                                                   "where tpep_pickup_datetime " \
+                                                                                   "between \"" \
+                         + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" ORDER BY tpep_pickup_datetime ASC LIMIT 0,1"
 
-    # Read pool requests from database
-    tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
-                        + "pickup_longitude, dropoff_latitude, dropoff_longitude from temp where tpep_pickup_datetime " \
-                          "between \"" \
-                        + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" and dropoff_latitude between " + str(
-        source_latitude_min) + \
-                        " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
-        source_longitude_min) + " and " + \
-                        str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
-
-    records1 = getRecords(fromlaguardia_query)
-    records2 = getRecords(tolaguardia_query)
-    print("Fetched # records from the database ", len(records1))
-    print("Fetched # records from the database ", len(records2))
-    isFromLaguardiaDataPresent = False
-    isToLaguardiaDataPresent = False
-
-    if len(records1) == 0:
-        print("No records fetched for the given query : " + fromlaguardia_query)
-        isFromLaguardiaDataPresent = True
-
-    if len(records2) == 0:
-        print("No records fetched for the given query : " + tolaguardia_query)
-        isToLaguardiaDataPresent = True
-
-    if isFromLaguardiaDataPresent and isToLaguardiaDataPresent:
-        print("No data is available to process ride-sharing ")
+    # Create pools for 2nd pool window
+    result = getRecords(trip_records_query)
+    if len(result) == 0:
+        print("No records exist between the given dates " + tripWindow_start_time + " " + tripWindow_end_time)
     else:
-        trips_From_Laguardia, trips_To_Laguarida = records1, records2
+        # Create pools for 1st pool window
+        pool_start_date = result[0][1]
+        pool_end_date = pool_start_date + timedelta(minutes=pool_window_time1)
+
+        print("Started Analyzing trip requests for pool windows of " + str(pool_window_time1) + " minutes")
+        tripWindow_end_time = datetime.strptime(tripWindow_end_time, "%Y-%m-%d %H:%M:%S")
+        while pool_end_date <= tripWindow_end_time:
+
+            # Read pool requests from database
+            fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
+                                                                                            " dropoff_longitude,trip_distance from temp where tpep_pickup_datetime between \"" \
+                                  + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and pickup_latitude " \
+                                                                                    "between " + \
+                                  str(source_latitude_min) + \
+                                  " and " + str(source_latitude_max) + " and pickup_longitude between " + str(
+                source_longitude_min) + " and " + \
+                                  str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+            # Read pool requests from database
+            tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
+                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,trip_distance from temp where tpep_pickup_datetime " \
+                                  "between \"" + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and " \
+                                                                                                 "dropoff_latitude " \
+                                                                                                 "between " + str(
+                source_latitude_min) + \
+                                " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
+                source_longitude_min) + " and " + \
+                                str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+            records1 = getRecords(fromlaguardia_query)
+            records2 = getRecords(tolaguardia_query)
+            print("Fetched # records from the database ", len(records1))
+            print("Fetched # records from the database ", len(records2))
+
+            if len(records1) == 0:
+                print("No records fetched for the given query : " + fromlaguardia_query)
+
+            else:
+
+                pool_map = dict()
+                pool_map[random_pool_Ids.pop()] = records1
+                poolsCount = poolsCount + 1
+                fromLaguardiaPoolsCreatedCount = fromLaguardiaPoolsCreatedCount + 1
+                starting_time = datetime.utcnow()
+                pick_a_ride(pool_map, "From Laguardia", pool_window_time1)
+                fromLaguardiaPoolsProcessedCount = fromLaguardiaPoolsProcessedCount + 1
+                ending_time = datetime.utcnow()
+                cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
+                if cumulativeSum >= computationTimeInSeconds:
+                    print("Trips created in {} for pool window of {} minutes is given below".format(
+                        total_time_delta_minutes, pool_window_time1))
+                    print("--- Total Pools Created is {}".format(
+                        fromLaguardiaPoolsCreatedCount + toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Created for trips starting at Laguardia {}".format(
+                        fromLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips starting at Laguadia {}".format(
+                        fromLaguardiaPoolsProcessedCount))
+                    print(
+                        "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
+                        toLaguardiaPoolsProcesedCount))
+                    break
+
+            if len(records2) == 0:
+                print("No records fetched for the given query : " + tolaguardia_query)
+
+            else:
+
+                pool_map = dict()
+                pool_map[random_pool_Ids.pop()] = records2
+                poolsCount = poolsCount + 1
+                toLaguardiaPoolsCreatedCount = toLaguardiaPoolsCreatedCount + 1
+                starting_time = datetime.utcnow()
+                pick_a_ride(pool_map, "To Laguardia", pool_window_time1)
+                toLaguardiaPoolsProcesedCount = toLaguardiaPoolsProcesedCount + 1
+                ending_time = datetime.utcnow()
+                cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
+                if cumulativeSum >= computationTimeInSeconds:
+                    print("Trips created in {} for pool window of {} minutes is given below".format(
+                        total_time_delta_minutes, pool_window_time1))
+                    print("--- Total Pools Created is {}".format(
+                        fromLaguardiaPoolsCreatedCount + toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Created for trips starting at Laguardia {}".format(
+                        fromLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips starting at Laguadia {}".format(
+                        fromLaguardiaPoolsCreatedCount - fromLaguardiaPoolsProcessedCount))
+                    print(
+                        "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
+                        toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
+                    break
+
+            pool_start_date = pool_end_date
+            pool_end_date = pool_end_date + timedelta(minutes=pool_window_time1)
+
+        pool_start_date = result[0][1]
+        pool_end_date = pool_start_date + timedelta(minutes=pool_window_time2)
+        fromLaguardiaPoolsCreatedCount=0
+        fromLaguardiaPoolsProcessedCount=0
+        toLaguardiaPoolsProcesedCount=0
+        toLaguardiaPoolsCreatedCount=0
+        cumulativeSum=0
+        print("Started Analyzing trip requests for pool windows of " + str(pool_window_time2) + " minutes")
+        # Create pools for 2st pool window
+        while pool_end_date <= tripWindow_end_time:
+            # Read pool requests from database
+            fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
+                                                                                            " dropoff_longitude,trip_distance from temp where tpep_pickup_datetime between \"" \
+                                  + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and pickup_latitude " \
+                                                                                    "between " + \
+                                  str(source_latitude_min) + \
+                                  " and " + str(source_latitude_max) + " and pickup_longitude between " + str(
+                source_longitude_min) + " and " + \
+                                  str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+            # Read pool requests from database
+            tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
+                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,trip_distance from temp where tpep_pickup_datetime " \
+                                  "between \"" + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and " \
+                                                                                                 "dropoff_latitude " \
+                                                                                                 "between " + str(
+                source_latitude_min) + \
+                                " and " + str(source_latitude_max) + " and dropoff_longitude between " + str(
+                source_longitude_min) + " and " + \
+                                str(source_longitude_max) + " ORDER BY tpep_pickup_datetime ASC"
+
+            records1 = getRecords(fromlaguardia_query)
+            records2 = getRecords(tolaguardia_query)
+            print("Fetched # records from the database ", len(records1))
+            print("Fetched # records from the database ", len(records2))
+
+            if len(records1) == 0:
+                print("No records fetched for the given query : " + fromlaguardia_query)
+
+            else:
+                fromLaguardiaPoolsCreatedCount = fromLaguardiaPoolsCreatedCount + 1
+
+                pool_map = dict()
+                pool_map[random_pool_Ids.pop()] = records1
+                starting_time = datetime.utcnow()
+                pick_a_ride(pool_map, "From Laguardia", pool_window_time2)
+                fromLaguardiaPoolsProcessedCount = fromLaguardiaPoolsProcessedCount + 1
+                ending_time = datetime.utcnow()
+                cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
+                if cumulativeSum >= computationTimeInSeconds:
+                    print("Trips created in {} for pool window of {} minutes is given below".format(
+                        total_time_delta_minutes, pool_window_time2))
+                    print("--- Total Pools Created is {}".format(
+                        fromLaguardiaPoolsCreatedCount + toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Created for trips starting at Laguardia {}".format(
+                        fromLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips starting at Laguadia {}".format(
+                        fromLaguardiaPoolsCreatedCount - fromLaguardiaPoolsProcessedCount))
+                    print(
+                        "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
+                        toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
+                    break
+
+            if len(records2) == 0:
+                print("No records fetched for the given query : " + tolaguardia_query)
+
+            else:
+                pool_map = dict()
+                pool_map[random_pool_Ids.pop()] = records2
+                toLaguardiaPoolsCreatedCount = toLaguardiaPoolsCreatedCount + 1
+                starting_time = datetime.utcnow()
+                pick_a_ride(pool_map, "To Laguardia", pool_window_time2)
+                toLaguardiaPoolsProcesedCount = toLaguardiaPoolsProcesedCount + 1
+                ending_time = datetime.utcnow()
+                cumulativeSum = cumulativeSum + (ending_time - starting_time).total_seconds()
+                if cumulativeSum >= computationTimeInSeconds:
+                    print("Trips created in {} for pool window of {} minutes is given below".format(
+                        total_time_delta_minutes, pool_window_time2))
+                    print("--- Total Pools Created is {}".format(
+                        fromLaguardiaPoolsCreatedCount + toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Created for trips starting at Laguardia {}".format(
+                        fromLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips starting at Laguadia {}".format(
+                        fromLaguardiaPoolsCreatedCount - fromLaguardiaPoolsProcessedCount))
+                    print(
+                        "--- Total Pools Created for trips ending at Laguardia {}".format(toLaguardiaPoolsCreatedCount))
+                    print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
+                        toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
+                    break
+            pool_start_date = pool_end_date
+            pool_end_date = pool_end_date + timedelta(minutes=pool_window_time2)
 
 
 def main():
-    print("Starting Program")
+    print("Starting Program...")
     program_start_time = time.time()
     random.shuffle(random_pool_Ids)
     random.shuffle(random_trip_Ids)
     load_data_from_source()
     print("Starting Ride-Sharing logic for pool window of time: " + str(pool_window_time1) + " minutes")
-    pick_a_ride(trips_From_Laguardia, "From Laguardia", pool_window_time1)
-    pick_a_ride(trips_To_Laguardia, "To Laguardia", pool_window_time1)
-    pick_a_ride(trips_From_Laguardia, "From Laguardia", pool_window_time2)
-    pick_a_ride(trips_To_Laguardia, "To Laguardia", pool_window_time2)
-    print("--- %s seconds ---" % (time.time() - program_start_time))
+    print("---Total Program Run time %s minutes ---{}".format((time.time() - program_start_time)/60))
 
 
 if __name__ == "__main__":

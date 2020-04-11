@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from mysql.connector import errorcode
 import pandas as pd
-from ride_sharing.source_code.output_graphs.output_graph import *
+from Project.source_code.output_graphs.output_graph import *
 
 try:
 

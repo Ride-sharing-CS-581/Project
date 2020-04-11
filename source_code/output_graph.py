@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 def graph1(p5, p10, Tp5, Tp10):
     # line 1 points
     x1 = ["5", "10"]
@@ -26,8 +27,8 @@ def graph1(p5, p10, Tp5, Tp10):
     # function to show the plot
     plt.show()
 
-def graph3(p5, p10, Tp5, Tp10):
 
+def graph3(p5, p10, Tp5, Tp10):
     # line 1 points
     x1 = ["5", "10"]
     y1 = [p5, p10]
@@ -39,7 +40,6 @@ def graph3(p5, p10, Tp5, Tp10):
     y2 = [Tp5, Tp10]
     # plotting the line 2 points
     plt.plot(x2, y2, label="To LGA")
-
 
     # naming the x axis
     plt.xlabel('Pool window')
@@ -54,8 +54,8 @@ def graph3(p5, p10, Tp5, Tp10):
     # function to show the plot
     plt.show()
 
-def graph2(p5, p10, Tp5, Tp10):
 
+def graph2(p5, p10, Tp5, Tp10):
     # line 1 points
     x1 = ["5", "10"]
     y1 = [p5, p10]
@@ -80,6 +80,7 @@ def graph2(p5, p10, Tp5, Tp10):
 
     # function to show the plot
     plt.show()
+
 
 graph1(12, 15, 10, 16)
 graph2(12, 15, 10, 16)
