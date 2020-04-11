@@ -2,8 +2,14 @@ import mysql.connector
 from mysql.connector import Error
 from mysql.connector import errorcode
 import pandas as pd
+from ride_sharing.source_code.output_graphs.output_graph import *
 
 try:
+
+    F5=0
+    F10=0
+    T5=0
+    T10=0
     connection = mysql.connector.connect(user='root', password='rootroot',
                               host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com',
                               database='ride_sharing')
@@ -28,6 +34,28 @@ try:
     df = pd.read_sql(mysql_select,con=connection)
     print(df)
     cursor.close()
+
+    for i in df:
+        print(i)
+
+    for i in df.index:
+        if (df['pool_window'][i] == 5):
+            if (df['ride_label'][i] == "From LaGuardia"):
+                F5=df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+                print("F5",F5)
+            if (df['ride_label'][i] == "To LaGuardia"):
+                T5 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+                print("T5", T5)
+        if (df['pool_window'][i] == 5):
+            if (df['ride_label'][i] == "From LaGuardia"):
+                F10=df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+                print("F10",F10)
+            if (df['ride_label'][i] == "To LaGuardia"):
+                T10 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+                print("T10", T10)
+    graph1(F5, F10, T5, T10)
+
+
 
 except mysql.connector.Error as error:
     print("Failed to insert record into Laptop table {}".format(error))
