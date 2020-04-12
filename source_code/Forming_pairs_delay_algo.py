@@ -12,8 +12,8 @@ pool_rides = list()
 pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent = 20
-tripWindow_start_time = "2016-05-17 12:00:00"
-tripWindow_end_time = "2016-05-17 23:59:59"
+tripWindow_start_time = "2016-02-01 00:00:00"
+tripWindow_end_time = "2016-02-01 12:00:00"
 total_time_delta_minutes = 5
 
 total_pools_running_time = 0
@@ -24,8 +24,8 @@ source_latitude_min = 40.7714
 source_latitude_max = 40.7754
 source_longitude_max = -73.8572
 source_longitude_min = -73.8875
-random_pool_Ids = list(range(21,00,000, 31,00,000))
-random_trip_Ids = list(range(31,00,000, 40,00,000))
+random_pool_Ids = list(range(2100000, 3100000))
+random_trip_Ids = list(range(3100000, 4000000))
 trips_From_Laguardia = []
 trips_To_Laguardia = []
 G = nx.Graph()
@@ -325,7 +325,7 @@ def load_data_from_source():
     computationTimeInSeconds = timedelta(minutes=total_time_delta_minutes).total_seconds()
     # Get the 1st starting trip record whose pickup time is in between trip window start time and trip window end time
     trip_records_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                   "dropoff_longitude,dist_airport from taxitrips " \
+                                                                                   "dropoff_longitude,trip_distance from temp " \
                                                                                    "where tpep_pickup_datetime " \
                                                                                    "between \"" \
                          + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" ORDER BY tpep_pickup_datetime ASC LIMIT 0,1"
