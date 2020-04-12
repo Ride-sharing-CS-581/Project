@@ -12,9 +12,10 @@ pool_rides = list()
 pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent = 20
-tripWindow_start_time = "2016-02-01 02:00:00"
-tripWindow_end_time = "2016-02-01 23:59:59"
+tripWindow_start_time = "2016-05-17 12:00:00"
+tripWindow_end_time = "2016-05-17 23:59:59"
 total_time_delta_minutes = 5
+
 total_pools_running_time = 0
 total_pools_processed = 0
 
@@ -23,8 +24,8 @@ source_latitude_min = 40.7714
 source_latitude_max = 40.7754
 source_longitude_max = -73.8572
 source_longitude_min = -73.8875
-random_pool_Ids = list(range(1000000))
-random_trip_Ids = list(range(2000000))
+random_pool_Ids = list(range(21,00,000, 31,00,000))
+random_trip_Ids = list(range(31,00,000, 40,00,000))
 trips_From_Laguardia = []
 trips_To_Laguardia = []
 G = nx.Graph()
@@ -119,9 +120,10 @@ def pick_a_ride(pool_map, origin, pool_window_time):
                     database_response = insertRecord(pool_insert_query)
                     print(database_response)
                     isRideSharingDone = True
-                    tripID = random_trip_Ids.pop()
+
                     # Insert ride-sharable requests as individual trips
                     for nodes in ride_shareable_nodes:
+                        tripID = random_trip_Ids.pop()
                         trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) " \
                                                    "values (" + \
                                                    str(tripID) + "," + str(pool) + "," + str(
@@ -162,15 +164,15 @@ def pick_a_ride(pool_map, origin, pool_window_time):
                 for rideID in rideIDS:
                     # store in db
                     tripID = random_trip_Ids.pop()
-                    trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared,rideLabel,record_entry) values (" + \
+                    trip_detail_insert_query = "insert into trip_details (trip_id,pool_id,rideT_id,isRideShared," \
+                                               "rideLabel,record_entry) values (" + \
                                                str(tripID) + "," + str(pool) + "," + str(
                         rideID) + "," + "0" + "," + "\"" + rideLabel + "\"" + \
                                                ",\"" + str(record_entry) + "\")"
                     insertRecord(trip_detail_insert_query)
 
                 print("Time taken in seconds for processing pool " + str(pool) + " with " + str(len(
-                    pool_shares)) + " rides "
-                      + str(difference * 0.0166667) + " minutes")
+                    pool_shares)) + " rides " + str(difference * 0.0166667) + " minutes")
     except Exception as e:
         raise e
 
@@ -323,11 +325,11 @@ def load_data_from_source():
     computationTimeInSeconds = timedelta(minutes=total_time_delta_minutes).total_seconds()
     # Get the 1st starting trip record whose pickup time is in between trip window start time and trip window end time
     trip_records_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                   "dropoff_longitude,trip_distance from temp " \
+                                                                                   "dropoff_longitude,dist_airport from taxitrips " \
                                                                                    "where tpep_pickup_datetime " \
                                                                                    "between \"" \
                          + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" ORDER BY tpep_pickup_datetime ASC LIMIT 0,1"
-
+    print(trip_records_query)
     # Create pools for 2nd pool window
     result = getRecords(trip_records_query)
     if len(result) == 0:
@@ -339,11 +341,11 @@ def load_data_from_source():
 
         print("Started Analyzing trip requests for pool windows of " + str(pool_window_time1) + " minutes")
         tripWindow_end_time = datetime.strptime(tripWindow_end_time, "%Y-%m-%d %H:%M:%S")
-        while pool_end_date <= tripWindow_end_time:
+        '''while pool_end_date <= tripWindow_end_time:
 
             # Read pool requests from database
             fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                            " dropoff_longitude,trip_distance from temp where tpep_pickup_datetime between \"" \
+                                                                                            " dropoff_longitude,dist_airport from taxitrips where tpep_pickup_datetime between \"" \
                                   + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and pickup_latitude " \
                                                                                               "between " + \
                                   str(source_latitude_min) + \
@@ -353,7 +355,7 @@ def load_data_from_source():
 
             # Read pool requests from database
             tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
-                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,trip_distance from temp where tpep_pickup_datetime " \
+                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,dist_airport from taxitrips where tpep_pickup_datetime " \
                                   "between \"" + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and " \
                                                                                                            "dropoff_latitude " \
                                                                                                            "between " + str(
@@ -426,7 +428,7 @@ def load_data_from_source():
                     isDataShown = True
 
             pool_start_date = pool_end_date
-            pool_end_date = pool_end_date + timedelta(minutes=pool_window_time1)
+            pool_end_date = pool_end_date + timedelta(minutes=pool_window_time1)'''
 
         pool_start_date = result[0][1]
         pool_end_date = pool_start_date + timedelta(minutes=pool_window_time2)
@@ -439,6 +441,7 @@ def load_data_from_source():
         print("Started Analyzing trip requests for pool windows of " + str(pool_window_time2) + " minutes")
         # Create pools for 2st pool window
         while pool_end_date <= tripWindow_end_time:
+
             # Read pool requests from database
             fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
                                                                                             " dropoff_longitude,trip_distance from temp where tpep_pickup_datetime between \"" \
@@ -521,6 +524,8 @@ def load_data_from_source():
                     isDataShown = True
             pool_start_date = pool_end_date
             pool_end_date = pool_end_date + timedelta(minutes=pool_window_time2)
+
+
 
 
 def main():
