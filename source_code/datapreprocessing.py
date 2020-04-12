@@ -45,7 +45,7 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
 
 try:
     # origins=47.6044,-122.3345;47.6731,-122.1185;47.6149,-122.1936&destinations=45.5347,-122.6231;47.4747,-122.2057
-    #result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
+    result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
     print("")
 except Exception as err:
     print(err.args)

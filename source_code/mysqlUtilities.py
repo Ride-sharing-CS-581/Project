@@ -89,7 +89,7 @@ def getNearestIntersections(destLat: str, destLong: str):
             "cos(radians(longitude) - radians(" + str(destLong) + ")) + sin(radians(" + \
             str(
                 destLat) + ")) * sin(radians(latitude)))) AS distance FROM intersections HAVING " \
-                           "distance < 0.18 ORDER " \
+                           "distance < 1 ORDER " \
                            "BY intersections.distance LIMIT 0,1; "
     print(query)
     try:
@@ -143,15 +143,15 @@ def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, de
                                                      float(destLong))
         destLat = str(destLat)
         destLong = str(destLong)
-        distance = str(calculateDistance(sourceLat, sourceLong, str(destLat), str(destLong)))
+        distance,time = calculateDistance(sourceLat, sourceLong, str(destLat), str(destLong))
         query = "insert into intersections(latitude, longitude, distance) values (" + destLat + "," + destLong + "," + \
                 str(distance) + ")"
         insertRecord(query)
-        return destLat, destLong
+        return destLat, destLong, distance
     else:
         if len(result) > 0:
             #                 print(result)
-            return result[0][0], result[0][1]
+            return result[0][0], result[0][1], result[0][2]
         else:
 
             destLat, destLong = findNewIntersectionPoint(float(sourceLat), float(sourceLong), float(destLat),
@@ -160,7 +160,7 @@ def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, de
             query = "insert into intersections (latitude, longitude, distance) values (" + str(
                 destLat) + "," + str(destLong) + "," + str(distance) + ")"
             insertRecord(query)
-            return destLat, destLong
+            return destLat, destLong, distance
 
 # code which was written before. Donot delete
 
