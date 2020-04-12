@@ -13,8 +13,8 @@ API_KEY = "Asui_QOxZdbG4g0U9i_XayOUyZAJrCyI6PXqD_RCdi-wKDRnT-y73DOZgBmymjJY"
 #       + '&key=' + API_KEY + '&distanceUnit=mi&timeUnit=second'
 
 # API
-url = 'http://127.0.0.1:5000/route/v1/driving/'
-# url = 'http://router.project-osrm.org/route/v1/driving/'
+#url = 'http://127.0.0.1:5000/route/v1/driving/'
+url = 'http://router.project-osrm.org/route/v1/driving/'
 
 # Function to calculate the distance for a given set of latitude and longitude values for source
 # and destination and returns the distance and time. Throws exception otherwise.

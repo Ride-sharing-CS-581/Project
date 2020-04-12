@@ -325,7 +325,7 @@ def load_data_from_source():
     computationTimeInSeconds = timedelta(minutes=total_time_delta_minutes).total_seconds()
     # Get the 1st starting trip record whose pickup time is in between trip window start time and trip window end time
     trip_records_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                   "dropoff_longitude,trip_distance from temp " \
+                                                                                   "dropoff_longitude,dist_airport from taxitrips " \
                                                                                    "where tpep_pickup_datetime " \
                                                                                    "between \"" \
                          + tripWindow_start_time + "\" and \"" + tripWindow_end_time + "\" ORDER BY tpep_pickup_datetime ASC LIMIT 0,1"
@@ -444,7 +444,7 @@ def load_data_from_source():
 
             # Read pool requests from database
             fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
-                                                                                            " dropoff_longitude,trip_distance from temp where tpep_pickup_datetime between \"" \
+                                                                                            " dropoff_longitude,dist_airport from taxitrips where tpep_pickup_datetime between \"" \
                                   + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and pickup_latitude " \
                                                                                               "between " + \
                                   str(source_latitude_min) + \
@@ -454,7 +454,7 @@ def load_data_from_source():
 
             # Read pool requests from database
             tolaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," \
-                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,trip_distance from temp where tpep_pickup_datetime " \
+                                + "pickup_longitude, dropoff_latitude, dropoff_longitude,dist_airport from taxitrips where tpep_pickup_datetime " \
                                   "between \"" + str(pool_start_date) + "\" and \"" + str(pool_end_date) + "\" and " \
                                                                                                            "dropoff_latitude " \
                                                                                                            "between " + str(
