@@ -4,8 +4,8 @@ from mysql.connector import connect
 import sys
 import requests
 
-connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing', user='root',
-                     password='rootroot',
+connection = connect(host='localhost', database='ride_sharing', user='root',
+                     password='root',
                      auth_plugin='mysql_native_password')
 
 print('Attempting to connect to the database...')
@@ -27,8 +27,8 @@ url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
 # Function to check if a record exists in the database
 def getRecords(query):
     try:
-        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing',
-                             user='root', password='rootroot', auth_plugin='mysql_native_password')
+        connection = connect(host='localhost', database='ride_sharing',
+                             user='root', password='root', auth_plugin='mysql_native_password')
         cursor = connection.cursor()
         cursor.execute(query)
         records = cursor.fetchall()
@@ -44,8 +44,8 @@ def getRecords(query):
 # Function to insert a record in to the database table
 def insertRecord(query):
     try:
-        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing',
-                             user='root', password='rootroot', auth_plugin='mysql_native_password')
+        connection = connect(host='localhost', database='ride_sharing',
+                             user='root', password='root', auth_plugin='mysql_native_password')
         cursor = connection.cursor(prepared=True)
         cursor.execute(query)
         connection.commit()
@@ -93,8 +93,8 @@ def getNearestIntersections(destLat: str, destLong: str):
                            "BY intersections.distance LIMIT 0,1; "
     print(query)
     try:
-        connection = connect(host='locations.c1vvuhtpuoui.us-west-1.rds.amazonaws.com', database='ride_sharing',
-                             user='root', password='rootroot', auth_plugin='mysql_native_password')
+        connection = connect(host='localhost', database='ride_sharing',
+                             user='root', password='root', auth_plugin='mysql_native_password')
         cursor = connection.cursor()
         cursor.execute(query)
         records = cursor.fetchall()

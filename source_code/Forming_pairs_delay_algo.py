@@ -12,8 +12,8 @@ pool_rides = list()
 pool_window_time1 = 5
 pool_window_time2 = 10
 delay_factor_percent = 20
-tripWindow_start_time = "2016-02-01 00:00:00"
-tripWindow_end_time = "2016-02-01 12:00:00"
+tripWindow_start_time = "2016-05-17 00:00:00"
+tripWindow_end_time = "2016-05-17 12:00:00"
 total_time_delta_minutes = 5
 
 total_pools_running_time = 0
@@ -24,8 +24,8 @@ source_latitude_min = 40.7714
 source_latitude_max = 40.7754
 source_longitude_max = -73.8572
 source_longitude_min = -73.8875
-random_pool_Ids = list(range(2100000, 3100000))
-random_trip_Ids = list(range(3100000, 4000000))
+random_pool_Ids = list(range(7100000, 8100000))
+random_trip_Ids = list(range(5100000, 6000000))
 trips_From_Laguardia = []
 trips_To_Laguardia = []
 G = nx.Graph()
@@ -427,7 +427,7 @@ def load_data_from_source():
                         toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
                     isDataShown = True
 
-            pool_start_date = pool_end_date
+            pool_start_date = pool_end_date + timedelta(minutes=1)
             pool_end_date = pool_end_date + timedelta(minutes=pool_window_time1)'''
 
         pool_start_date = result[0][1]
@@ -441,7 +441,8 @@ def load_data_from_source():
         print("Started Analyzing trip requests for pool windows of " + str(pool_window_time2) + " minutes")
         # Create pools for 2st pool window
         while pool_end_date <= tripWindow_end_time:
-
+            print("POOL start date",str(pool_start_date))
+            print("POOL end date",str(pool_end_date))
             # Read pool requests from database
             fromlaguardia_query = "select RideID, tpep_pickup_datetime ,pickup_latitude," + "pickup_longitude, dropoff_latitude," \
                                                                                             " dropoff_longitude,dist_airport from taxitrips where tpep_pickup_datetime between \"" \
@@ -522,7 +523,7 @@ def load_data_from_source():
                     print("--- Total Pools Analyzed for trips ending at Laguardia {}".format(
                         toLaguardiaPoolsCreatedCount - toLaguardiaPoolsProcesedCount))
                     isDataShown = True
-            pool_start_date = pool_end_date
+            pool_start_date = pool_end_date + timedelta(minutes=1)
             pool_end_date = pool_end_date + timedelta(minutes=pool_window_time2)
 
 

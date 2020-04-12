@@ -31,7 +31,7 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
         if r.status_code == 200:
             # extracting data in json format
             data = r.json()
-            print('Data'+str(data))
+            print('Data '+str(data))
             print(source_latitude+' '+source_longitude+' '+destination_latitude+' '+destination_longitude)
             if len(data['routes']) == 0:
                 return -1,-1
