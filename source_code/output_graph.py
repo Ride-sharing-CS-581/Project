@@ -15,11 +15,11 @@ def graph1(p5, p10, Tp5, Tp10):
     plt.plot(x2, y2, label="To LGA")
 
     # naming the x axis
-    plt.xlabel('Pool window')
+    plt.xlabel('Pool window (min)')
     # naming the y axis
-    plt.ylabel('Average distance saved per pool')
+    plt.ylabel('Average distance saved per pool (miles)')
     # giving a title to my graph
-    plt.title('Graph one')
+    plt.title('Average distance saved per pool as a % of the total distance of individual (unshared) trips')
 
     # show a legend on the plot
     plt.legend()
@@ -42,11 +42,11 @@ def graph3(p5, p10, Tp5, Tp10):
     plt.plot(x2, y2, label="To LGA")
 
     # naming the x axis
-    plt.xlabel('Pool window')
+    plt.xlabel('Pool window (min)')
     # naming the y axis
-    plt.ylabel('Average Computation time per pool')
+    plt.ylabel('Average Computation time per pool (seconds)')
     # giving a title to my graph
-    plt.title('Graph three')
+    plt.title('Average computation time per pool')
 
     # show a legend on the plot
     plt.legend()
@@ -69,11 +69,11 @@ def graph2(p5, p10, Tp5, Tp10):
     plt.plot(x2, y2, label="To LGA")
 
     # naming the x axis
-    plt.xlabel('Pool window')
+    plt.xlabel('Pool window (min)')
     # naming the y axis
     plt.ylabel('Average number of trips saved per pool')
     # giving a title to my graph
-    plt.title('Graph two')
+    plt.title('Average number of trips saved per pool as a % of the number of individual trips')
 
     # show a legend on the plot
     plt.legend()
