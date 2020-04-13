@@ -82,6 +82,7 @@ def graph2(p5, p10, Tp5, Tp10):
     plt.show()
 
 
-graph1(12, 15, 10, 16)
-graph2(12, 15, 10, 16)
-graph3(12, 15, 10, 16)
+# From LaG 5 min pool, From Lag 10 min pool, To Lag 5 min pool, To Lag 10 min pool
+# graph1(15.074967, 37.93, 30, 67.98)
+# graph2(12, 15, 10, 16)
+# graph3(12, 15, 10, 16)
