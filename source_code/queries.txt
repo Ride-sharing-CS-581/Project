@@ -1,0 +1,24 @@
+Avg dist saved per pool as % of total individual trips distance for
+category of {rideLabel, poolWindow}
+
+with 
+cte (total_dist_saved,rideLabel,pool_window,count,total_initial_trip_distance) as (select sum(dist_saved) as 
+total_dist_saved,rideLabel,pool_window,count(*), sum(initial_trips_distance) as 
+total_initial_trip_distance from 
+pool_details group by rideLabel, pool_window)
+select *,total_dist_saved/cte.count as average, (total_dist_saved/cte.count)/total_initial_trip_distance *100 as 
+d_saved  from cte group by rideLabel, pool_window;
+
+Avg trips saved as per pool as % of total individual trips for
+category of {rideLabel, poolWindow}
+
+with 
+cte (total_trips_saved,rideLabel,pool_window,count,total_initial_trip) as (select sum(trips_saved) as 
+trips_saved,rideLabel,pool_window,count(*), sum(initial_trips) as 
+initial_trips from 
+pool_details group by rideLabel, pool_window)
+select *,total_trips_saved/cte.count as average_per_pool, (total_trips_saved/cte.count)/total_initial_trip *100 as 
+t_saved  from cte group by rideLabel, pool_window;
+
+Sample Records: 
+

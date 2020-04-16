@@ -16,14 +16,14 @@ try:
     mySql_insert_query = """insert into graph_plot1
                             select t.pool_id, t.rideLabel, sum(r.dist_airport),p.dist_saved, p.pool_window
                             from taxitrips as r,
-                            trip_details as t,
-                            pool_details as p
+                            trip_details_v2 as t,
+                            pool_details_v2 as p
                             where  t.rideT_id=r.RideID and t.pool_id= p.pool_id
                             group by  t.pool_id
                             order by t.pool_id  """
 
     cursor = connection.cursor()
-    #cursor.execute(mySql_insert_query)
+    cursor.execute(mySql_insert_query)
     connection.commit()
     print(cursor.rowcount, "Record inserted successfully into ride_sharing table")
 
