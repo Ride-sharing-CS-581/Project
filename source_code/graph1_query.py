@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import Error
 from mysql.connector import errorcode
 import pandas as pd
-from Project.source_code.output_graph import *
+from ride_sharing.source_code.output_graph import *
 
 try:
 
@@ -13,23 +13,17 @@ try:
     connection = mysql.connector.connect(user='root', password='root',
                                          host='localhost',
                                          database='ride_sharing')
-    mySql_insert_query = """insert into graph_plot1
-                            select t.pool_id, t.rideLabel, sum(r.dist_airport),p.dist_saved, p.pool_window
-                            from taxitrips as r,
-                            trip_details as t,
-                            pool_details as p
-                            where  t.rideT_id=r.RideID and t.pool_id= p.pool_id
-                            group by  t.pool_id
-                            order by t.pool_id  """
+
 
     cursor = connection.cursor()
     #cursor.execute(mySql_insert_query)
     connection.commit()
     print(cursor.rowcount, "Record inserted successfully into ride_sharing table")
 
-    mysql_select = """select pool_window, ride_label,avg ((g.shared_dist / g.actual_dist ) * 100)
-                    from graph_plot1 as g
-                    group by pool_window, ride_label """
+    mysql_select = """select pool_window, rideLabel, avg((dist_saved/initial_trips_distance)*100)
+from pool_details
+group by pool_window, rideLabel
+ """
 
     df = pd.read_sql(mysql_select, con=connection)
     print(df)
@@ -39,19 +33,20 @@ try:
         print(i)
 
     for i in df.index:
-        if (df['pool_window'][i] == '5'):
-            if (df['ride_label'][i] == "From LaGuardia"):
-                F5 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+        #print(df['pool_window'][i])
+        if (df['pool_window'][i] == 5):
+            if (df['rideLabel'][i] == "From LaGuardia"):
+                F5 = df['avg((dist_saved/initial_trips_distance)*100)'][i]
                 print("F5", F5)
-            if (df['ride_label'][i] == "To LaGuardia"):
-                T5 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+            if (df['rideLabel'][i] == "To LaGuardia"):
+                T5 = df['avg((dist_saved/initial_trips_distance)*100)'][i]
                 print("T5", T5)
-        if (df['pool_window'][i] == '10'):
-            if (df['ride_label'][i] == "From LaGuardia"):
-                F10 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+        if (df['pool_window'][i] == 10):
+            if (df['rideLabel'][i] == "From LaGuardia"):
+                F10 = df['avg((dist_saved/initial_trips_distance)*100)'][i]
                 print("F10", F10)
-            if (df['ride_label'][i] == "To LaGuardia"):
-                T10 = df['avg ((g.shared_dist / g.actual_dist ) * 100)'][i]
+            if (df['rideLabel'][i] == "To LaGuardia"):
+                T10 = df['avg((dist_saved/initial_trips_distance)*100)'][i]
                 print("T10", T10)
     graph1(F5, F10, T5, T10)
 
