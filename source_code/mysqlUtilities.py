@@ -31,7 +31,7 @@ def getRecords(query):
     finally:
         cursor.close()
         connection.close()
-        print("MySQL connection is closed")
+        #print("MySQL connection is closed")
 
 
 # Function to insert a record in to the database table
@@ -47,7 +47,7 @@ def insertRecord(query):
     finally:
         cursor.close()
         connection.close()
-        print("MySQL connection is closed")
+        #print("MySQL connection is closed")
 
 
 # Returns nearest intersection near to the destination considering 0.18 mile radius
@@ -60,7 +60,7 @@ def getNearestIntersections(destLat: str, destLong: str):
                 destLat) + ")) * sin(radians(latitude)))) AS distance FROM intersections HAVING " \
                            "distance < 1 ORDER " \
                            "BY intersections.distance LIMIT 0,1; "
-    print(query)
+    #print(query)
     try:
         connection = connect(host='localhost', database='ride_sharing',
                              user='root', password='root', auth_plugin='mysql_native_password')
@@ -74,7 +74,7 @@ def getNearestIntersections(destLat: str, destLong: str):
     finally:
         cursor.close()
         connection.close()
-        print("MySQL connection is closed")
+        #print("MySQL connection is closed")
 
 
 # # function to compute bearing angle in the direction of source and destination and compute an intersection point
@@ -117,7 +117,7 @@ def findNewIntersectionPoint(source_lat, source_long, destination_lat, destinati
     if r.status_code == 200:
         # extracting data in json format
         data = r.json()
-        print('Data ' + str(data))
+        #print('Data ' + str(data))
         location = data['waypoints'][0]['location']
         return location[1],location[0]
     else :
@@ -140,8 +140,8 @@ def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, de
     result = getNearestIntersections(destLat, destLong)
 
     if result is None or len(result) == 0:
-        print("Inserting current points as intersection")
-        
+        #print("Inserting current points as intersection")
+
         distance = distance_from_laguardia
         if distance > 0:
             query = "insert into intersections(latitude, longitude, distance) values (" + destLat + "," + destLong + "," + \

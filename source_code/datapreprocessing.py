@@ -23,15 +23,15 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
         # Check if the parameters are empty
         if source_latitude == "" or source_longitude == "" or destination_latitude == "" or destination_longitude == "":
             raise Exception("At least 1 argument is empty")
-        print("Coordinates are "+source_latitude+" "+source_longitude+" "+destination_latitude+" "+destination_longitude)
+        #print("Coordinates are "+source_latitude+" "+source_longitude+" "+destination_latitude+" "+destination_longitude)
         params = (source_longitude) + "," + (source_latitude) + ";" + (destination_longitude) + "," + (
             destination_latitude) + '?overview=false'
         r = requests.get(url=url + params)
         if r.status_code == 200:
             # extracting data in json format
             data = r.json()
-            print('Data ' + str(data))
-            print(source_latitude + ' ' + source_longitude + ' ' + destination_latitude + ' ' + destination_longitude)
+            #print('Data ' + str(data))
+            #print(source_latitude + ' ' + source_longitude + ' ' + destination_latitude + ' ' + destination_longitude)
             if len(data['routes']) == 0:
                 return -1, -1
             distance_in_metres = data['routes'][0]['distance']
@@ -39,7 +39,7 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
             distance_in_miles = distance_in_metres * 0.0006
             return distance_in_miles, data['routes'][0]['duration']
         else:
-            print("No API response. Status is " + r.status_code)
+            print("No API response. Status is " + str(r.status_code))
             print(source_latitude + ' ' + source_longitude + ' ' + destination_latitude + ' ' + destination_longitude)
             return -1, -1
     except Exception as e:

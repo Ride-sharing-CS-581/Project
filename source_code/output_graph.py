@@ -15,11 +15,11 @@ def graph1(p5, p10, Tp5, Tp10):
     plt.plot(x2, y2, label="To LGA")
 
     # naming the x axis
-    plt.xlabel('Pool window')
+    plt.xlabel('Pool window (in minutes )')
     # naming the y axis
-    plt.ylabel('Average distance saved per pool')
+    plt.ylabel('Average distance saved per pool (in % )')
     # giving a title to my graph
-    plt.title('Graph one')
+    plt.title('Graph one - Avg distance saved per pool  as % of individual trips')
 
     # show a legend on the plot
     plt.legend()
@@ -44,7 +44,7 @@ def graph3(p5, p10, Tp5, Tp10):
     # naming the x axis
     plt.xlabel('Pool window')
     # naming the y axis
-    plt.ylabel('Average Computation time per pool')
+    plt.ylabel('Average Computation time per pool (in seconds)')
     # giving a title to my graph
     plt.title('Graph three')
 
@@ -69,9 +69,9 @@ def graph2(p5, p10, Tp5, Tp10):
     plt.plot(x2, y2, label="To LGA")
 
     # naming the x axis
-    plt.xlabel('Pool window')
+    plt.xlabel('Pool window (in minutes)')
     # naming the y axis
-    plt.ylabel('Average number of trips saved per pool')
+    plt.ylabel('Average number of trips saved per pool ')
     # giving a title to my graph
     plt.title('Graph two')
 
