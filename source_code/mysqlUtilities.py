@@ -31,7 +31,7 @@ def getRecords(query):
     finally:
         cursor.close()
         connection.close()
-        #print("MySQL connection is closed")
+        # print("MySQL connection is closed")
 
 
 # Function to insert a record in to the database table
@@ -47,7 +47,7 @@ def insertRecord(query):
     finally:
         cursor.close()
         connection.close()
-        #print("MySQL connection is closed")
+        # print("MySQL connection is closed")
 
 
 # Returns nearest intersection near to the destination considering 0.18 mile radius
@@ -60,7 +60,7 @@ def getNearestIntersections(destLat: str, destLong: str):
                 destLat) + ")) * sin(radians(latitude)))) AS distance FROM intersections HAVING " \
                            "distance < 1 ORDER " \
                            "BY intersections.distance LIMIT 0,1; "
-    #print(query)
+    # print(query)
     try:
         connection = connect(host='localhost', database='ride_sharing',
                              user='root', password='root', auth_plugin='mysql_native_password')
@@ -74,7 +74,7 @@ def getNearestIntersections(destLat: str, destLong: str):
     finally:
         cursor.close()
         connection.close()
-        #print("MySQL connection is closed")
+        # print("MySQL connection is closed")
 
 
 # # function to compute bearing angle in the direction of source and destination and compute an intersection point
@@ -101,7 +101,6 @@ def getNearestIntersections(destLat: str, destLong: str):
 # function to compute bearing angle in the direction of source and destination and compute an intersection point
 # within 0.18 miles of the source
 def findNewIntersectionPoint(source_lat, source_long, destination_lat, destination_long):
-
     lat2 = radians(source_lat)
     lat1 = radians(destination_lat)
     lon1 = radians(destination_long)
@@ -110,26 +109,25 @@ def findNewIntersectionPoint(source_lat, source_long, destination_lat, destinati
     bearing = degrees(bearing)
     bearing = (bearing + 360) % 360
 
-    nearest_api = "http://localhost:5000/nearest/v1/driving/" + str(destination_long)+","+str(destination_lat)
-    +"?number=1"+"&bearings="+bearing+","+bearing
+    nearest_api = "http://localhost:5000/nearest/v1/driving/" + str(destination_long) + "," + str(destination_lat)
+    +"?number=1" + "&bearings=" + bearing + "," + bearing
 
     r = requests.get(url=nearest_api)
     if r.status_code == 200:
         # extracting data in json format
         data = r.json()
-        #print('Data ' + str(data))
+        # print('Data ' + str(data))
         location = data['waypoints'][0]['location']
-        return location[1],location[0]
-    else :
-        return -1,1
-
-
+        return location[1], location[0]
+    else:
+        return -1, 1
 
 
 # Checks if there exists an intersection in the radius else it would consider the destinations as the new intersection
 # and returns the destination itself as the new intersection.
 # precisionLong is just placed as a place holder for now.
-def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, destLong: str, origin,distance_from_laguardia):
+def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, destLong: str, origin,
+                               distance_from_laguardia):
     if origin == "To Laguardia":
         # source is the pickup points and destination is laguardia airport
         instance = sourceLat, sourceLong
@@ -140,7 +138,7 @@ def getMinDistanceIntersection(sourceLat: str, sourceLong: str, destLat: str, de
     result = getNearestIntersections(destLat, destLong)
 
     if result is None or len(result) == 0:
-        #print("Inserting current points as intersection")
+        # print("Inserting current points as intersection")
 
         distance = distance_from_laguardia
         if distance > 0:

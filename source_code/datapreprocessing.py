@@ -1,15 +1,6 @@
 # from source_code.mysqlUtilities import getRecords, insertRecord
 import requests
 
-#
-# # API KEY
-# API_KEY = "Asui_QOxZdbG4g0U9i_XayOUyZAJrCyI6PXqD_RCdi-wKDRnT-y73DOZgBmymjJY"
-
-# # BING MAPS API
-# url = 'https://dev.virtualearth.net/REST/v1/Routes/DistanceMatrix?' \
-#       '$$$$' \
-#       + '&key=' + API_KEY + '&distanceUnit=mi&timeUnit=second'
-
 # API
 url = 'http://127.0.0.1:5000/route/v1/driving/'
 #url = 'http://router.project-osrm.org/route/v1/driving/'
@@ -47,9 +38,3 @@ def calculateDistance(source_latitude: str, source_longitude: str, destination_l
         print(source_latitude + ' ' + source_longitude + ' ' + destination_latitude + ' ' + destination_longitude)
         raise e
 
-# try:
-#     # origins=47.6044,-122.3345;47.6731,-122.1185;47.6149,-122.1936&destinations=45.5347,-122.6231;47.4747,-122.2057
-#     result = calculateDistance("47.6044", "-122.3345", "45.5347", "-122.6231")
-#     print("")
-# except Exception as err:
-#     print(err.args)
